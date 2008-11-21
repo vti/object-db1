@@ -58,7 +58,7 @@ sub new {
     return $self;
 }
 
-sub has_column {
+sub is_column {
     my $self = shift;
     my ($name) = @_;
 
@@ -118,7 +118,7 @@ sub del_column {
     my $self = shift;
     my ($name) = @_;
 
-    return unless $name && $self->has_column($name);
+    return unless $name && $self->is_column($name);
 
     delete $self->_columns->{$name};
 }

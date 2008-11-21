@@ -49,19 +49,19 @@ is(Model::Simple->meta->is_primary_key('foo'), 1);
 is_deeply([sort Model::Base->meta->columns], [sort qw/ foo bar baz /]);
 is_deeply([Model::Base->meta->primary_keys], [qw/ foo /]);
 
-ok(Model::Base->meta->has_column('foo'));
-ok(!Model::Base->meta->has_column('fooo'));
+ok(Model::Base->meta->is_column('foo'));
+ok(!Model::Base->meta->is_column('fooo'));
 
 is_deeply([sort Model->meta->columns], [sort qw/ foo baz gaz /]);
 is_deeply([Model->meta->primary_keys], [qw/ foo /]);
 
-ok(Model->meta->has_column('foo'));
-ok(!Model->meta->has_column('fooo'));
+ok(Model->meta->is_column('foo'));
+ok(!Model->meta->is_column('fooo'));
 
-ok(Model->meta->has_column('gaz'));
-ok(!Model->meta->has_column('bar'));
+ok(Model->meta->is_column('gaz'));
+ok(!Model->meta->is_column('bar'));
 
-ok(Model::Options->meta->has_column('foo'));
+ok(Model::Options->meta->is_column('foo'));
 is_deeply([Model::Options->meta->primary_keys], [qw/ foo /]);
 is_deeply(Model::Options->meta->auto_increment, 'foo');
 is_deeply([sort Model::Options->meta->columns], [sort qw/ foo /]);
