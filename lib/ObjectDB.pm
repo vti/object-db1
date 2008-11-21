@@ -232,14 +232,12 @@ sub update_objects {
 
     my $sql = ObjectDB::SQL->new(%params);
 
-    my @columns = grep { !$class->meta->is_primary_key($_)} $class->meta->columns;
+    my @columns =
+      grep { !$class->meta->is_primary_key($_) } $class->meta->columns;
 
     $sql->command('update')
       ->table($class->meta->table)
       ->columns([@columns]);
-
-    #use Data::Dumper;
-    #die Dumper $sql;
 
     warn $sql if DEBUG;
 
