@@ -7,9 +7,9 @@ use base 'ObjectDB::Base';
 
 use overload '""' => sub { shift->to_string }, fallback => 1;
 
-__PACKAGE__->attr([qw/ command table /], chained => 1);
+__PACKAGE__->attr([qw/ command table group_by having order_by limit offset /], chained => 1);
 __PACKAGE__->attr('columns', default => sub {[]}, chained => 1);
-__PACKAGE__->attr('_where', default => sub {{}}, chained => 1);
+__PACKAGE__->attr('where', default => sub {{}}, chained => 1);
 
 sub insert { shift->command('insert') }
 
@@ -28,21 +28,6 @@ sub add_columns {
     return unless @_;
 
     push @{$self->columns}, @_;
-}
-
-sub where {
-    my $self = shift;
-
-    if (defined $_[0]) {
-        if (ref $_[0] eq 'HASH') {
-            $self->_where($_[0]);
-        } else {
-            $self->_where({@_});
-        }
-        return $self;
-    } else {
-        return %{$self->_where};
-    }
 }
 
 sub to_string {
@@ -66,9 +51,34 @@ sub to_string {
         $query .= ' FROM ';
         $query .= $self->table;
 
-        if ($self->where) {
+        if (%{$self->where}) {
             $query .= ' WHERE ';
             $query .= $self->_where_to_string;
+        }
+
+        if ($self->group_by) {
+            $query .= ' GROUP BY ';
+            $query .= $self->group_by;
+        }
+
+        if ($self->having) {
+            $query .= ' HAVING ';
+            $query .= $self->having;
+        }
+
+        if ($self->order_by) {
+            $query .= ' ORDER BY ';
+            $query .= $self->order_by;
+        }
+
+        if ($self->limit) {
+            $query .= ' LIMIT ';
+            $query .= $self->limit;
+        }
+
+        if ($self->offset) {
+            $query .= ' OFFSET ';
+            $query .= $self->offset;
         }
     } elsif ($self->command eq 'update') {
         $query .= 'UPDATE ';
@@ -82,7 +92,7 @@ sub to_string {
             $i--;
         }
 
-        if ($self->where) {
+        if (%{$self->where}) {
             $query .= ' WHERE ';
             $query .= $self->_where_to_string;
         }
@@ -90,7 +100,7 @@ sub to_string {
         $query .= 'DELETE FROM ';
         $query .= $self->table;
 
-        if ($self->where) {
+        if (%{$self->where}) {
             $query .= ' WHERE ';
             $query .= $self->_where_to_string;
         }
@@ -103,10 +113,10 @@ sub _where_to_string {
     my $self = shift;
 
     my $string = "";
-    my %where = $self->where;
+    my $where = $self->where;
 
-    foreach my $key (keys %where) {
-        $string .= "$key = '$where{$key}'";
+    foreach my $key (keys %$where) {
+        $string .= "$key = '$where->{$key}'";
     }
 
     return $string;

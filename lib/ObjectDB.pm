@@ -111,7 +111,7 @@ sub find {
     $sql->command('select')
       ->table($self->meta->table)
       ->columns([$self->meta->columns])
-      ->where(%params);
+      ->where({%params});
 
     warn $sql if DEBUG;
 
@@ -152,7 +152,7 @@ sub update {
     $sql->command('update')
       ->table($self->meta->table)
       ->columns([@columns])
-      ->where(%params);
+      ->where({%params});
 
     warn $sql if DEBUG;
 
@@ -189,7 +189,7 @@ sub delete {
 
     $sql->command('delete')
       ->table($self->meta->table)
-      ->where(%params);
+      ->where({%params});
 
     warn $sql if DEBUG;
 
@@ -202,24 +202,23 @@ sub find_objects {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new;
+    my $sql = ObjectDB::SQL->new(%params);
 
     $sql->command('select')
       ->table($class->meta->table)
-      ->columns([$class->meta->columns])
-      ->where(delete $params{where});
+      ->columns([$class->meta->columns]);
 
     warn $sql if DEBUG;
     
     my $sth = $dbh->prepare("$sql");
 
     if (wantarray) {
-        my $results = $dbh->selectall_arrayref("$sql", { Slice => {} }, %params);
+        my $results = $dbh->selectall_arrayref("$sql", { Slice => {} });
         return () if $results eq '0E0';
 
         my @results = map { $class->new(%{$_}) } @$results;
     } else {
-        $sth->execute(%params);
+        $sth->execute();
 
         ObjectDB::Iterator->new(sth => $sth, class => $class);
     }
