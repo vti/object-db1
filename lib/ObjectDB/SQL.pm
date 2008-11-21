@@ -7,7 +7,7 @@ use base 'ObjectDB::Base';
 
 use overload '""' => sub { shift->to_string }, fallback => 1;
 
-__PACKAGE__->attr([qw/ command table group_by having order_by limit offset /], chained => 1);
+__PACKAGE__->attr([qw/ command table group_by having order_by limit offset bind /], chained => 1);
 __PACKAGE__->attr('columns', default => sub {[]}, chained => 1);
 __PACKAGE__->attr('where', default => sub {{}}, chained => 1);
 

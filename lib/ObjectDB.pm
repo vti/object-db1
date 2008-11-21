@@ -224,6 +224,28 @@ sub find_objects {
     }
 }
 
+sub update_objects {
+    my $class = shift;
+    my %params = @_;
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQL->new(%params);
+
+    my @columns = grep { !$class->meta->is_primary_key($_)} $class->meta->columns;
+
+    $sql->command('update')
+      ->table($class->meta->table)
+      ->columns([@columns]);
+
+    #use Data::Dumper;
+    #die Dumper $sql;
+
+    warn $sql if DEBUG;
+
+    return $dbh->do("$sql", undef, @{$sql->bind});
+}
+
 sub delete_objects {
     my $class = shift;
     my %params = @_;

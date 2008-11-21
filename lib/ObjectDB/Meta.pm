@@ -14,6 +14,7 @@ __PACKAGE__->attr('auto_increment', chained => 1);
 __PACKAGE__->attr('_primary_keys', default => sub {[]}, chained => 1);
 __PACKAGE__->attr('_unique_keys', default => sub {[]}, chained => 1);
 __PACKAGE__->attr('_columns', default => sub {{}}, chained => 1);
+__PACKAGE__->attr('_columns_array', default => sub {[]}, chained => 1);
 
 our %objects;
 
@@ -52,6 +53,7 @@ sub new {
     my $self = $class->SUPER::new(table          => $table,
                                   auto_increment => $auto_increment,
                                   _columns       => $columns,
+                                  _columns_array => \@columns,
                                   _primary_keys  => $primary_keys,
                                   _unique_keys  => $unique_keys);
 
@@ -70,7 +72,7 @@ sub is_column {
 sub columns {
     my $self = shift;
 
-    return keys %{$self->_columns};
+    return @{$self->_columns_array};
 }
 
 sub primary_keys {
@@ -112,6 +114,7 @@ sub add_column {
     return unless $name;
 
     $self->_columns->{$name} = {};
+    push @{$self->_columns_array}, $name;
 }
 
 sub del_column {
@@ -121,6 +124,8 @@ sub del_column {
     return unless $name && $self->is_column($name);
 
     delete $self->_columns->{$name};
+
+    @{$self->_columns_array} = grep { $_ ne $name } $self->columns;
 }
 
 sub _get_parents {
