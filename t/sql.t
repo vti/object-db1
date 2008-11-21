@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 9;
 
 use ObjectDB::SQL;
 
@@ -24,3 +24,10 @@ is("$sql", "SELECT hello FROM foo WHERE id = '2'");
 
 $sql->command('select')->table('foo')->columns([qw/ hello boo /])->where(id => 2);
 is("$sql", "SELECT hello, boo FROM foo WHERE id = '2'");
+
+$sql->clear;
+$sql->command('delete')->table('foo');
+is("$sql", "DELETE FROM foo");
+
+$sql->command('delete')->table('foo')->where(id => 2);
+is("$sql", "DELETE FROM foo WHERE id = '2'");

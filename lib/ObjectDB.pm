@@ -122,9 +122,35 @@ sub find {
 
 sub update {}
 
-sub delete {}
+sub delete {
+    my $class = shift;
+    my $self = ref $class ? $class : $class->new();
 
-sub as_hash {
+    die 'query params are required' unless @_;
+
+    my %params = @_;
+
+    my @names = keys %params;
+
+    foreach my $name (@names) {
+        die "$name is not primary key or unique column"
+          unless $self->meta->is_primary_key($name);
+    }
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQL->new;
+
+    $sql->command('delete')
+      ->table($self->meta->table)
+      ->where(%params);
+
+    warn $sql if DEBUG;
+
+    return $dbh->do("$sql");
+}
+
+sub to_hash {
     my $self = shift;
 
     my @columns = $self->meta->columns;

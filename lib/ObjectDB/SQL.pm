@@ -13,6 +13,15 @@ __PACKAGE__->attr('_where', default => sub {{}}, chained => 1);
 
 sub insert { shift->command('insert') }
 
+sub clear {
+    my $self = shift;
+
+    $self->command(undef);
+    $self->table(undef);
+    $self->columns([]);
+    $self->_where({});
+}
+
 sub add_columns {
     my $self = shift;
 
@@ -28,7 +37,7 @@ sub where {
         $self->_where({@_});
         return $self;
     } else {
-        return $self->_where;
+        return %{$self->_where};
     }
 }
 
@@ -57,6 +66,14 @@ sub to_string {
             $query .= ' WHERE ';
             $query .= $self->_where_to_string;
         }
+    } elsif ($self->command eq 'delete') {
+        $query .= 'DELETE FROM ';
+        $query .= $self->table;
+
+        if ($self->where) {
+            $query .= ' WHERE ';
+            $query .= $self->_where_to_string;
+        }
     }
 
     return $query;
@@ -66,10 +83,10 @@ sub _where_to_string {
     my $self = shift;
 
     my $string = "";
-    my $where = $self->where;
+    my %where = $self->where;
 
-    foreach my $key (keys %$where) {
-        $string .= "$key = '$where->{$key}'";
+    foreach my $key (keys %where) {
+        $string .= "$key = '$where{$key}'";
     }
 
     return $string;

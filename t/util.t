@@ -6,4 +6,4 @@ use User;
 
 my $u = User->new(name => 'bar');
 
-is_deeply($u->as_hash, {id => undef, name => 'bar', password => undef});
+is_deeply($u->to_hash, {id => undef, name => 'bar', password => undef});
