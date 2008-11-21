@@ -1,11 +1,17 @@
-use Test::More tests => 2;
+use Test::More tests => 4;
 
-use ObjectDB::SQL;
+use lib 't/lib';
 
-my $sql = ObjectDB::SQL->new();
+use User;
 
-$sql->command('delete')->table('foo');
-is("$sql", "DELETE FROM foo");
+my $u = User->create(name => 'foo', password => 'boo');
 
-$sql->command('delete')->table('foo')->where(id => 2);
-is("$sql", "DELETE FROM foo WHERE id = '2'");
+is(User->delete(id => $u->column('id')), 1);
+
+is(User->delete(id => 345345), '0E0');
+
+eval { User->delete(); };
+ok($@);
+
+$u = User->create();
+ok($u->delete());

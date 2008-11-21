@@ -153,9 +153,14 @@ sub delete {
     my $class = shift;
     my $self = ref $class ? $class : $class->new();
 
-    die 'query params are required' unless @_;
+    my %params;
+    if (ref $class) {
+        %params = map { $_ => $self->column($_) } $self->meta->primary_keys;
+    } else {
+        die 'query params are required' unless @_;
 
-    my %params = @_;
+        %params = @_;
+    }
 
     my @names = keys %params;
 
