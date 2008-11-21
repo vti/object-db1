@@ -109,7 +109,7 @@ sub find {
 
     $sql->command('select')
       ->table($self->meta->table)
-      ->columns(['*'])
+      ->columns([$self->meta->columns])
       ->where(%params);
 
     warn $sql if DEBUG;
