@@ -1,15 +1,11 @@
 use Test::More tests => 2;
 
-use lib 't/lib';
+use ObjectDB::SQL;
 
-use User;
+my $sql = ObjectDB::SQL->new();
 
-my $u = User->create(name => 'foo', password => 'bar');
+$sql->command('update')->table('foo')->columns([qw/ hello boo /]);
+is("$sql", "UPDATE foo SET hello = ?, boo = ?");
 
-$u->column(name => 'fuu');
-$u->column(password => 'boo');
-$u->update;
-
-$u = User->find(id => $u->column('id'));
-is($u->column('name'), 'fuu');
-is($u->column('password'), 'boo');
+$sql->command('update')->table('foo')->columns([qw/ hello boo /])->where(id => 2);
+is("$sql", "UPDATE foo SET hello = ?, boo = ? WHERE id = '2'");
