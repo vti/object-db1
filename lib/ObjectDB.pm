@@ -8,6 +8,7 @@ use base 'ObjectDB::Base';
 use DBI;
 use ObjectDB::SQL;
 use ObjectDB::Meta;
+use ObjectDB::Iterator;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
@@ -123,6 +124,18 @@ sub find {
     return $self;
 }
 
+sub select {
+    my $class = shift;
+
+    my @pk = $class->meta->primary_keys();
+
+    if (@_ >= @pk) {
+        $class->find(map { $_ => shift @_ } @pk);
+    } else {
+        die 'not enough primary keys';
+    }
+}
+
 sub update {
     my $self = shift;
 
@@ -176,6 +189,52 @@ sub delete {
 
     $sql->command('delete')
       ->table($self->meta->table)
+      ->where(%params);
+
+    warn $sql if DEBUG;
+
+    return $dbh->do("$sql");
+}
+
+sub find_objects {
+    my $class = shift;
+    my %params = @_;
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQL->new;
+
+    $sql->command('select')
+      ->table($class->meta->table)
+      ->columns([$class->meta->columns])
+      ->where(delete $params{where});
+
+    warn $sql if DEBUG;
+    
+    my $sth = $dbh->prepare("$sql");
+
+    if (wantarray) {
+        my $results = $dbh->selectall_arrayref("$sql", { Slice => {} }, %params);
+        return () if $results eq '0E0';
+
+        my @results = map { $class->new(%{$_}) } @$results;
+    } else {
+        $sth->execute(%params);
+
+        ObjectDB::Iterator->new(sth => $sth, class => $class);
+    }
+}
+
+sub delete_objects {
+    my $class = shift;
+    my %params = @_;
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQL->new;
+
+    $sql->command('delete')
+      ->table($class->meta->table)
       ->where(%params);
 
     warn $sql if DEBUG;

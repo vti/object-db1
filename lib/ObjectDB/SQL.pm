@@ -33,8 +33,12 @@ sub add_columns {
 sub where {
     my $self = shift;
 
-    if (@_) {
-        $self->_where({@_});
+    if (defined $_[0]) {
+        if (ref $_[0] eq 'HASH') {
+            $self->_where($_[0]);
+        } else {
+            $self->_where({@_});
+        }
         return $self;
     } else {
         return %{$self->_where};

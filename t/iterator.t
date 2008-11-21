@@ -11,7 +11,7 @@ my $dbh = User->init_db;
 my $sth = $dbh->prepare("SELECT * FROM user");
 $sth->execute;
 
-my $i = ObjectDB::Iterator->new(sth => $sth);
+my $i = ObjectDB::Iterator->new(sth => $sth, class => 'User');
 ok($i);
 
 my $count = 0;
