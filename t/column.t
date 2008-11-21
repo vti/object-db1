@@ -1,4 +1,4 @@
-use Test::More tests => 5;
+use Test::More tests => 6;
 
 use lib 't/lib';
 
@@ -19,3 +19,6 @@ ok(not defined $u->column('id'));
 $u->column(id => 'bar');
 $u->column('id');
 is($u->column('id'), 'bar');
+
+$u = User->new(id => 'foo');
+is($u->column('id'), 'foo');
