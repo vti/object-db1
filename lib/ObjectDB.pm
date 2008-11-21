@@ -75,6 +75,8 @@ sub create {
 
     my @values = map { $self->column($_) } $self->meta->columns;
 
+    warn $sql if DEBUG;
+
     my $sth = $dbh->prepare("$sql");
     my $rv = $sth->execute(@values);
 
@@ -97,7 +99,8 @@ sub find {
 
     foreach my $name (@names) {
         die "$name is not primary key or unique column"
-          unless $self->meta->is_primary_key($name);
+          unless $self->meta->is_primary_key($name)
+              || $self->meta->is_unique_key($name);
     }
 
     my $dbh = $class->init_db;
@@ -120,7 +123,31 @@ sub find {
     return $self;
 }
 
-sub update {}
+sub update {
+    my $self = shift;
+
+    die 'must be called on instance' unless ref $self;
+
+    my $dbh = $self->init_db;
+
+    my $sql = ObjectDB::SQL->new;
+
+    my %params = map { $_ => $self->column($_) } $self->meta->primary_keys;
+
+    my @columns = grep { !$self->meta->is_primary_key($_)} $self->meta->columns;
+
+    $sql->command('update')
+      ->table($self->meta->table)
+      ->columns([@columns])
+      ->where(%params);
+
+    warn $sql if DEBUG;
+
+    my @values = map { $self->column($_) } @columns;
+
+    my $sth = $dbh->prepare("$sql");
+    return $sth->execute(@values);
+}
 
 sub delete {
     my $class = shift;
@@ -134,7 +161,8 @@ sub delete {
 
     foreach my $name (@names) {
         die "$name is not primary key or unique column"
-          unless $self->meta->is_primary_key($name);
+          unless $self->meta->is_primary_key($name)
+              || $self->meta->is_unique_key($name);
     }
 
     my $dbh = $class->init_db;

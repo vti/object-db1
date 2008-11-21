@@ -12,6 +12,7 @@ __PACKAGE__->attr('table', chained => 1);
 __PACKAGE__->attr('auto_increment', chained => 1);
 
 __PACKAGE__->attr('_primary_keys', default => sub {[]}, chained => 1);
+__PACKAGE__->attr('_unique_keys', default => sub {[]}, chained => 1);
 __PACKAGE__->attr('_columns', default => sub {{}}, chained => 1);
 
 our %objects;
@@ -33,6 +34,7 @@ sub new {
 
     my $columns        = $params{columns};
     my $primary_keys   = $params{primary_keys};
+    my $unique_keys   = $params{unique_keys};
     my $table          = $params{table};
     my $auto_increment = $params{auto_increment};
 
@@ -45,11 +47,13 @@ sub new {
     $columns = {map { $_ => {} } @columns };
 
     $primary_keys = ref $primary_keys ? $primary_keys : [$primary_keys];
+    $unique_keys = ref $unique_keys ? $unique_keys : [$unique_keys];
 
     my $self = $class->SUPER::new(table          => $table,
                                   auto_increment => $auto_increment,
                                   _columns       => $columns,
-                                  _primary_keys  => $primary_keys);
+                                  _primary_keys  => $primary_keys,
+                                  _unique_keys  => $unique_keys);
 
     return $self;
 }
@@ -82,6 +86,22 @@ sub is_primary_key {
     return 0 unless $name;
 
     my @rv = grep {$name eq $_} $self->primary_keys;
+    return @rv ? 1 : 0;
+}
+
+sub unique_keys {
+    my $self = shift;
+
+    return @{$self->_unique_keys};
+}
+
+sub is_unique_key {
+    my $self = shift;
+    my ($name) = @_;
+
+    return 0 unless $name;
+
+    my @rv = grep {$name eq $_} $self->unique_keys;
     return @rv ? 1 : 0;
 }
 

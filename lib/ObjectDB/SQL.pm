@@ -66,6 +66,22 @@ sub to_string {
             $query .= ' WHERE ';
             $query .= $self->_where_to_string;
         }
+    } elsif ($self->command eq 'update') {
+        $query .= 'UPDATE ';
+        $query .= $self->table;
+        $query .= ' SET ';
+
+        my $i = @{$self->columns} - 1;
+        foreach my $name (@{$self->columns}) {
+            $query .= "$name = ?";
+            $query .= ', ' if $i;
+            $i--;
+        }
+
+        if ($self->where) {
+            $query .= ' WHERE ';
+            $query .= $self->_where_to_string;
+        }
     } elsif ($self->command eq 'delete') {
         $query .= 'DELETE FROM ';
         $query .= $self->table;

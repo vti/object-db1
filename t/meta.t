@@ -31,12 +31,13 @@ __PACKAGE__->meta(
     table => 'options',
     columns => 'foo',
     primary_keys => 'foo',
-    auto_increment => 'foo'
+    auto_increment => 'foo',
+    unique_keys => 'foo'
 );
 
 package main;
 
-use Test::More tests => 18;
+use Test::More tests => 20;
 
 use lib 't/lib';
 
@@ -64,5 +65,7 @@ ok(Model::Options->meta->has_column('foo'));
 is_deeply([Model::Options->meta->primary_keys], [qw/ foo /]);
 is_deeply(Model::Options->meta->auto_increment, 'foo');
 is_deeply([sort Model::Options->meta->columns], [sort qw/ foo /]);
+is_deeply([Model::Options->meta->unique_keys], [qw/ foo /]);
+is(Model::Options->meta->is_unique_key('foo'), 1);
 
 1;

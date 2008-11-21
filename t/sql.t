@@ -1,4 +1,4 @@
-use Test::More tests => 9;
+use Test::More tests => 11;
 
 use ObjectDB::SQL;
 
@@ -24,6 +24,13 @@ is("$sql", "SELECT hello FROM foo WHERE id = '2'");
 
 $sql->command('select')->table('foo')->columns([qw/ hello boo /])->where(id => 2);
 is("$sql", "SELECT hello, boo FROM foo WHERE id = '2'");
+
+$sql->clear;
+$sql->command('update')->table('foo')->columns([qw/ hello boo /]);
+is("$sql", "UPDATE foo SET hello = ?, boo = ?");
+
+$sql->command('update')->table('foo')->columns([qw/ hello boo /])->where(id => 2);
+is("$sql", "UPDATE foo SET hello = ?, boo = ? WHERE id = '2'");
 
 $sql->clear;
 $sql->command('delete')->table('foo');
