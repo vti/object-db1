@@ -1,4 +1,4 @@
-use Test::More tests => 1;
+use Test::More tests => 2;
 
 use lib 't/lib';
 
@@ -14,7 +14,9 @@ $sth->execute;
 my $i = ObjectDB::Iterator->new(sth => $sth);
 ok($i);
 
+my $count = 0;
 while (my $value = $i->next) {
-    diag $value;
-    #die $value;
+    $count++;
 }
+
+ok($count);
