@@ -203,7 +203,7 @@ sub find_objects {
     my $sth = $dbh->prepare("$sql");
 
     if (wantarray) {
-        my $results = $dbh->selectall_arrayref("$sql", { Slice => {} });
+        my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
         return () if $results eq '0E0';
 
         return map { $class->new(%{$_}) } @$results;
@@ -240,7 +240,7 @@ sub delete_objects {
 
     my $sql = ObjectDB::SQL->new(command => 'delete',
                                  table   => $class->meta->table,
-                                 where   => {@_});
+                                 @_);
 
     warn $sql if DEBUG;
 
@@ -254,7 +254,8 @@ sub count_objects {
 
     my $sql = ObjectDB::SQL->new(command => 'select',
                                  columns => ['COUNT(*) AS count'],
-                                 table   => $class->meta->table);
+                                 table   => $class->meta->table,
+                                 @_);
 
     warn $sql if DEBUG;
 
