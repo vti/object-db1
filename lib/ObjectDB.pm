@@ -68,11 +68,9 @@ sub create {
 
     my $dbh = $self->init_db;
 
-    my $sql = ObjectDB::SQL->new;
-
-    $sql->command('insert')
-      ->table($self->meta->table)
-      ->columns([$self->meta->columns]);
+    my $sql = ObjectDB::SQL->new(command => 'insert',
+                                 table   => $self->meta->table,
+                                 columns => [$self->meta->columns]);
 
     my @values = map { $self->column($_) } $self->meta->columns;
 
@@ -106,12 +104,10 @@ sub find {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new;
-
-    $sql->command('select')
-      ->table($self->meta->table)
-      ->columns([$self->meta->columns])
-      ->where({%params});
+    my $sql = ObjectDB::SQL->new(command => 'select',
+                                 table   => $self->meta->table,
+                                 columns => [$self->meta->columns],
+                                 where   => \%params);
 
     warn $sql if DEBUG;
 
@@ -143,16 +139,14 @@ sub update {
 
     my $dbh = $self->init_db;
 
-    my $sql = ObjectDB::SQL->new;
-
     my %params = map { $_ => $self->column($_) } $self->meta->primary_keys;
 
     my @columns = grep { !$self->meta->is_primary_key($_)} $self->meta->columns;
 
-    $sql->command('update')
-      ->table($self->meta->table)
-      ->columns([@columns])
-      ->where({%params});
+    my $sql = ObjectDB::SQL->new(command => 'update',
+                                 table   => $self->meta->table,
+                                 columns => \@columns,
+                                 where   => \%params);
 
     warn $sql if DEBUG;
 
@@ -185,11 +179,9 @@ sub delete {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new;
-
-    $sql->command('delete')
-      ->table($self->meta->table)
-      ->where({%params});
+    my $sql = ObjectDB::SQL->new(command => 'delete',
+                                 table   => $class->meta->table,
+                                 where   => \%params);
 
     warn $sql if DEBUG;
 
@@ -243,15 +235,12 @@ sub update_objects {
 
 sub delete_objects {
     my $class = shift;
-    my %params = @_;
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new;
-
-    $sql->command('delete')
-      ->table($class->meta->table)
-      ->where(%params);
+    my $sql = ObjectDB::SQL->new(command => 'delete',
+                                 table   => $class->meta->table,
+                                 where   => {@_});
 
     warn $sql if DEBUG;
 
