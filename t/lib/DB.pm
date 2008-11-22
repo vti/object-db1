@@ -13,10 +13,10 @@ sub init_db {
     return $dbh if $dbh;
 
     $dbh = DBI->connect('dbi:SQLite:table.db');
+    $dbh->do("PRAGMA default_synchronous = OFF");
+    $dbh->do("PRAGMA temp_store = MEMORY");
 
     die $DBI::errorstr unless $dbh;
-
-    #die $dbh->{Driver}->{Name};
 }
 
 1;

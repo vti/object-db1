@@ -198,15 +198,13 @@ sub delete {
 
 sub find_objects {
     my $class = shift;
-    my %params = @_;
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(%params);
-
-    $sql->command('select')
-      ->table($class->meta->table)
-      ->columns([$class->meta->columns]);
+    my $sql = ObjectDB::SQL->new(command => 'select',
+                                 table   => $class->meta->table,
+                                 columns => [$class->meta->columns],
+                                 @_);
 
     warn $sql if DEBUG;
     
@@ -216,7 +214,7 @@ sub find_objects {
         my $results = $dbh->selectall_arrayref("$sql", { Slice => {} });
         return () if $results eq '0E0';
 
-        my @results = map { $class->new(%{$_}) } @$results;
+        return map { $class->new(%{$_}) } @$results;
     } else {
         $sth->execute();
 
@@ -226,20 +224,19 @@ sub find_objects {
 
 sub update_objects {
     my $class = shift;
-    my %params = @_;
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(%params);
+    my $sql = ObjectDB::SQL->new(command => 'update',
+                                 table   => $class->meta->table,
+                                 @_);
 
-    my @columns =
-      grep { !$class->meta->is_primary_key($_) } $class->meta->columns;
+    unless (@{$sql->columns}) {
+        $sql->columns([grep { !$class->meta->is_primary_key($_) }
+                      $class->meta->columns]);
+    }
 
-    $sql->command('update')
-      ->table($class->meta->table)
-      ->columns([@columns]);
-
-    warn $sql if DEBUG;
+    warn "$sql: " . join(', ', @{$sql->bind}) if DEBUG;
 
     return $dbh->do("$sql", undef, @{$sql->bind});
 }
