@@ -258,6 +258,22 @@ sub delete_objects {
     return $dbh->do("$sql");
 }
 
+sub count_objects {
+    my $class = shift;
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQL->new(command => 'select',
+                                 columns => ['COUNT(*) AS count'],
+                                 table   => $class->meta->table);
+
+    warn $sql if DEBUG;
+
+    my $hash_ref = $dbh->selectrow_hashref("$sql");
+
+    return $hash_ref->{count};
+}
+
 sub to_hash {
     my $self = shift;
 
