@@ -105,7 +105,7 @@ sub find {
     my $dbh = $class->init_db;
 
     my $sql = ObjectDB::SQL->new(command => 'select',
-                                 table   => $self->meta->table,
+                                 source  => $self->meta->table,
                                  columns => [$self->meta->columns],
                                  where   => \%params);
 
@@ -194,7 +194,7 @@ sub find_objects {
     my $dbh = $class->init_db;
 
     my $sql = ObjectDB::SQL->new(command => 'select',
-                                 table   => $class->meta->table,
+                                 source  => $class->meta->table,
                                  columns => [$class->meta->columns],
                                  @_);
 
@@ -254,7 +254,7 @@ sub count_objects {
 
     my $sql = ObjectDB::SQL->new(command => 'select',
                                  columns => ['COUNT(*) AS count'],
-                                 table   => $class->meta->table,
+                                 source  => $class->meta->table,
                                  @_);
 
     warn $sql if DEBUG;

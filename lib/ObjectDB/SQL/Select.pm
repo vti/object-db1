@@ -5,7 +5,7 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-__PACKAGE__->attr([qw/ _parent table group_by having order_by limit offset /], chained => 1);
+__PACKAGE__->attr([qw/ _parent source group_by having order_by limit offset /], chained => 1);
 __PACKAGE__->attr([qw/ columns bin /], default => sub {[]}, chained => 1);
 __PACKAGE__->attr('where', default => sub {{}}, chained => 1);
 
@@ -23,9 +23,24 @@ sub to_string {
     my $query = "";
 
     $query .= 'SELECT ';
-    $query .= join(', ', @{$self->columns});
+
+    if (@{$self->columns}) {
+        $query .= join(', ', @{$self->columns});
+    } else {
+        $query .= '*';
+    }
+
     $query .= ' FROM ';
-    $query .= $self->table;
+    if (ref $self->source eq 'HASH') {
+        $query .= $self->source->{source};
+
+        my $join = $self->source->{join};
+        $query .= ' ' . uc $join->{op} . ' JOIN ';
+        $query .= $join->{source};
+        $query .= ' ON ' . $join->{constraint};
+    } else {
+        $query .= $self->source;
+    }
 
     if (%{$self->where}) {
         $query .= ' WHERE ';
