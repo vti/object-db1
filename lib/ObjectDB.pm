@@ -308,7 +308,7 @@ sub find_related {
     my $where = delete $params{where} || [];
 
     my $single = 0;
-    if ($relationship->{type} eq 'belongs_to') {
+    if ($relationship->{type} eq 'many to one') {
         $single = 1;
         $where = [];
     }

@@ -13,7 +13,7 @@ __PACKAGE__->meta(
 
     relationships => {
         user => {
-            type => 'belongs_to',
+            type => 'many to one',
             class => 'User',
             map => {user_id => 'id'}
         }
