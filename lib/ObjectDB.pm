@@ -439,14 +439,26 @@ sub delete_related {
 
     my %params = @_;
 
-    my ($from, $to) = %{$relationship->{map}};
+    if ($relationship->{type} eq 'many to many') {
+        my $map_from = $relationship->{map_from};
+        my $map_to = $relationship->{map_to};
 
-    my $where = delete $params{where} || [];
+        my ($to, $from) =
+          %{$relationship->{map_class}->meta->relationships->{$map_from}
+              ->{map}};
 
-    return $relationship->{class}->delete_objects(
-        where => [$to => $self->column($from), @$where],
-        @_
-    );
+        $params{where} ||= [];
+        push @{$params{where}}, ($to => $self->column($from));
+
+        return $relationship->{map_class}->delete_objects(%params);
+    } else {
+        my ($from, $to) = %{$relationship->{map}};
+
+        $params{where} ||= [];
+        push @{$params{where}}, ($to => $self->column($from)),
+
+        return $relationship->{class}->delete_objects(%params);
+    }
 }
 
 sub to_hash {

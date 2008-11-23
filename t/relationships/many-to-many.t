@@ -1,4 +1,4 @@
-use Test::More tests => 8;
+use Test::More tests => 10;
 
 use lib 't/lib';
 
@@ -6,8 +6,12 @@ use Article;
 use Tag;
 use ArticleTagMap;
 
+Tag->delete_objects;
+
 my $article = Article->create(title => 'foo');
 my $tag = Tag->create(name => 'shit');
+
+Tag->create(name => 'more');
 
 ArticleTagMap->delete_objects;
 
@@ -27,8 +31,14 @@ is(@tags, 1);
 is($tags[0]->column('article_id'), $article->column('article_id'));
 is($tags[0]->column('tag_id'), $tag->column('tag_id'));
 
-#$article->set_related('tags', []);
 is($article->count_related('tags', where => [name => 'shot']), 0);
 is($article->count_related('tags', where => [name => 'shit']), 1);
 is($article->count_related('tags'), 1);
+
+$article->delete_related('tags');
+is($article->count_related('tags'), 0);
+
+is(Tag->count_objects, 2);
+
+#$article->create_related('tags', []);
 
