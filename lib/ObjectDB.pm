@@ -203,14 +203,7 @@ sub find_objects {
 
     my $sth = $dbh->prepare("$sql");
 
-    if (wantarray) {
-        warn $sql if DEBUG;
-
-        my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
-        return () if $results eq '0E0';
-
-        return map { $class->new(%{$_}) } @$results;
-    } elsif ($single) {
+    if ($single) {
         $sql->limit(1);
 
         warn $sql if DEBUG;
@@ -219,6 +212,13 @@ sub find_objects {
         return if $results eq '0E0';
 
         return $class->new(%{$results->[0]});
+    } elsif (wantarray) {
+        warn $sql if DEBUG;
+
+        my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
+        return () if $results eq '0E0';
+
+        return map { $class->new(%{$_}) } @$results;
     } else {
         warn $sql if DEBUG;
 
@@ -333,6 +333,25 @@ sub count_related {
     my $where = delete $params{where} || [];
 
     return $relationship->{class}->count_objects(
+        where => [$to => $self->column($from), @$where],
+        @_
+    );
+}
+
+sub update_related {
+    my $self = shift;
+
+    my ($name) = shift;
+
+    my $relationship = $self->_load_relationship($name);
+
+    my %params = @_;
+
+    my ($from, $to) = %{$relationship->{map}};
+
+    my $where = delete $params{where} || [];
+
+    return $relationship->{class}->update_objects(
         where => [$to => $self->column($from), @$where],
         @_
     );

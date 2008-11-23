@@ -1,4 +1,4 @@
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 use lib 't/lib';
 
@@ -26,6 +26,9 @@ is($articles[0]->column('title'), 'boo');
 is($u->count_related('articles', where => [title => 'foo']), 1);
 is(@articles, 1);
 is($articles[0]->column('title'), 'foo');
+
+$u->update_related('articles', where => [title => 'foo'], columns => ['title'], bind => ['zoo']);
+ok($u->find_related('articles', where => [title => 'zoo']));
 
 $u->delete_related('articles', where => [title => 'boo']);
 @articles = $u->find_related('articles', where => [title => 'boo']);
