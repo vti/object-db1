@@ -74,7 +74,7 @@ sub create {
 
     my @values = map { $self->column($_) } $self->meta->columns;
 
-    warn $sql if DEBUG;
+    warn "$sql: " . join(', ', @values) if DEBUG;
 
     my $sth = $dbh->prepare("$sql");
     my $rv = $sth->execute(@values);
@@ -309,6 +309,21 @@ sub _load_relationship {
     return $relationship;
 }
 
+sub create_related {
+    my $self = shift;
+    my ($name) = shift;
+
+    my $relationship = $self->_load_relationship($name);
+
+    unless ($relationship->{type} eq 'one to many') {
+        die "can be called only on 'one to many' relationships";
+    }
+
+    my ($from, $to) = %{$relationship->{map}};
+
+    return $relationship->{class}->create($to => $self->column($from), @_);
+}
+
 sub find_related {
     my $self = shift;
     my ($name) = shift;
@@ -317,7 +332,6 @@ sub find_related {
 
     my %params = @_;
 
-    #select * from tag join article_tag_map on tag.id=article_tag_map.tag_id where article_id=4;
     if ($relationship->{type} eq 'many to many') {
         my $map_from = $relationship->{map_from};
         my $map_to = $relationship->{map_to};
@@ -365,14 +379,37 @@ sub count_related {
 
     my %params = @_;
 
-    my ($from, $to) = %{$relationship->{map}};
+    if ($relationship->{type} eq 'many to many') {
+        my $map_from = $relationship->{map_from};
+        my $map_to = $relationship->{map_to};
 
-    my $where = delete $params{where} || [];
+        my ($to, $from) =
+          %{$relationship->{map_class}->meta->relationships->{$map_from}
+              ->{map}};
 
-    return $relationship->{class}->count_objects(
-        where => [$to => $self->column($from), @$where],
-        @_
-    );
+        $params{where} ||= [];
+        push @{$params{where}}, ($to => $self->column($from));
+
+        ($from, $to) =
+          %{$relationship->{map_class}->meta->relationships->{$map_to}
+              ->{map}};
+
+        my $table = $relationship->{class}->meta->table;
+        my $map_table = $relationship->{map_class}->meta->table;
+        $params{source} = [ $table ,
+            {   name     => $map_table,
+                join       => 'left',
+                constraint => "$table.$to=$map_table.$from"
+            }
+        ];
+    } else {
+        my ($from, $to) = %{$relationship->{map}};
+
+        $params{where} ||= [];
+        push @{$params{where}}, ($to => $self->column($from)),
+    }
+
+    return $relationship->{class}->count_objects(%params);
 }
 
 sub update_related {

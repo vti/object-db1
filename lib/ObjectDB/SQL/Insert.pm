@@ -5,8 +5,9 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-__PACKAGE__->attr([qw/ table bind /], chained => 1);
+__PACKAGE__->attr([qw/ table /], chained => 1);
 __PACKAGE__->attr('columns', default => sub { [] }, chained => 1);
+__PACKAGE__->attr('bind', default => sub { [] }, chained => 1);
 
 sub add_columns {
     my $self = shift;

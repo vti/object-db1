@@ -1,4 +1,4 @@
-use Test::More tests => 5;
+use Test::More tests => 8;
 
 use lib 't/lib';
 
@@ -26,3 +26,9 @@ my @tags = $article->find_related('tags');
 is(@tags, 1);
 is($tags[0]->column('article_id'), $article->column('article_id'));
 is($tags[0]->column('tag_id'), $tag->column('tag_id'));
+
+#$article->set_related('tags', []);
+is($article->count_related('tags', where => [name => 'shot']), 0);
+is($article->count_related('tags', where => [name => 'shit']), 1);
+is($article->count_related('tags'), 1);
+

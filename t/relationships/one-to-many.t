@@ -15,8 +15,8 @@ is(@articles, 0);
 
 Article->create(title => 'mega');
 
-Article->create(user_id => $u->column('id'), title => 'boo');
-Article->create(user_id => $u->column('id'), title => 'foo');
+$u->create_related('articles', title => 'boo');
+$u->create_related('articles', title => 'foo');
 my @articles = $u->find_related('articles');
 is(@articles, 2);
 is($u->count_related('articles'), 2);
