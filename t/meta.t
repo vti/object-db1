@@ -45,7 +45,7 @@ __PACKAGE__->meta(
 
     relationships => {
         albums => {
-            type => 'has_many',
+            type => 'one to many',
             class => 'Album',
             map => {id => 'artist_id'}
         }
@@ -60,16 +60,24 @@ __PACKAGE__->meta(
     columns => ['id', 'artist_id'],
     primary_keys => 'id',
 
-    belongs_to => {
-        name => 'artist',
-        class => 'Artist',
-        map => {artist_id => 'id'}
+    relationships => {
+        artist => {
+            type => 'many to one',
+            class => 'Artist',
+            map => {artist_id => 'id'}
+        }
     }
 );
 
+package Advanced;
+use base 'Album';
+
+__PACKAGE__->meta->add_column('year');
+__PACKAGE__->meta->add_relationship(foo => {type => 'one to one'});
+
 package main;
 
-use Test::More tests => 22;
+use Test::More tests => 24;
 
 use lib 't/lib';
 
@@ -103,5 +111,9 @@ is(Model::Options->meta->is_unique_key('foo'), 1);
 my $relationships = Artist->meta->relationships;
 is(keys %$relationships, 1);
 is_deeply($relationships->{albums}->{class}, 'Album');
+
+$relationships = Advanced->meta->relationships;
+is(keys %$relationships, 2);
+is_deeply($relationships->{foo}->{type}, 'one to one');
 
 1;

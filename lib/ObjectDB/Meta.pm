@@ -121,6 +121,15 @@ sub add_column {
     push @{$self->_columns_array}, $name;
 }
 
+sub add_relationship {
+    my $self = shift;
+    my ($name, $options) = @_;
+
+    return unless $name && $options;
+
+    $self->relationships->{$name} = $options;
+}
+
 sub del_column {
     my $self = shift;
     my ($name) = @_;

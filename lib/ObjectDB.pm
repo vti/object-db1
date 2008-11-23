@@ -344,7 +344,9 @@ sub find_related {
     } else {
         my ($from, $to) = %{$relationship->{map}};
 
-        if ($relationship->{type} eq 'many to one') {
+        if (   $relationship->{type} eq 'many to one'
+            || $relationship->{type} eq 'one to one')
+        {
             $params{single} = 1;
         }
 
