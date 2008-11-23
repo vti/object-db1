@@ -190,24 +190,38 @@ sub delete {
 
 sub find_objects {
     my $class = shift;
+    my %params = @_;
+
+    my $single = delete $params{single};
 
     my $dbh = $class->init_db;
 
     my $sql = ObjectDB::SQL->new(command => 'select',
                                  source  => $class->meta->table,
                                  columns => [$class->meta->columns],
-                                 @_);
+                                 %params);
 
-    warn $sql if DEBUG;
-    
     my $sth = $dbh->prepare("$sql");
 
     if (wantarray) {
+        warn $sql if DEBUG;
+
         my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
         return () if $results eq '0E0';
 
         return map { $class->new(%{$_}) } @$results;
+    } elsif ($single) {
+        $sql->limit(1);
+
+        warn $sql if DEBUG;
+
+        my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
+        return if $results eq '0E0';
+
+        return $class->new(%{$results->[0]});
     } else {
+        warn $sql if DEBUG;
+
         $sth->execute();
 
         ObjectDB::Iterator->new(sth => $sth, class => $class);

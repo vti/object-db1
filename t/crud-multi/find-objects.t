@@ -1,4 +1,4 @@
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 use lib 't/lib';
 
@@ -25,6 +25,9 @@ while (my $u = $users->next) {
 
 User->create(name => 'root', password => 'boo');
 User->create(name => 'root', password => 'booo');
+
+my $user = User->find_objects(where => [name => 'root'], single => 1);
+is($user->column('name'), 'root');
 
 @users = User->find_objects(where => [name => 'root']);
 is(@users, 2);
