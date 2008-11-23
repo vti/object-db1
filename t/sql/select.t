@@ -1,4 +1,4 @@
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 use ObjectDB::SQL;
 
@@ -20,10 +20,13 @@ $sql->command('select')->source('foo')->columns([qw/ hello boo /])
 is("$sql", "SELECT hello, boo FROM foo WHERE id = '2' GROUP BY foo HAVING foo ORDER BY hello DESC LIMIT 2 OFFSET 1");
 
 
+$sql->command('select')->columns([qw/ foo bar /])->source({name => 'foo', as => 'boo'});
+is("$sql", 'SELECT foo, bar FROM foo AS boo');
+
 $sql->command('select')->columns([qw/ foo bar /])->source(
     [   'table1',
         {   join       => 'inner',
-            source     => 'table2',
+            name       => 'table2',
             constraint => 'table1.foo=table2.bar'
         }
     ]
@@ -33,7 +36,7 @@ is("$sql", "SELECT foo, bar FROM table1 INNER JOIN table2 ON table1.foo=table2.b
 $sql->command('select')->columns([qw/ foo bar /])->source(
     [   'table1', 'table2',
         {   join       => 'inner',
-            source     => 'table3',
+            name       => 'table3',
             constraint => 'table1.foo=table2.bar'
         },
     ]

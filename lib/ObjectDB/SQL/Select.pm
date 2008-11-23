@@ -34,16 +34,19 @@ sub to_string {
 
     my $sources = $self->source;
     $sources = ref $sources eq 'ARRAY' ? $sources : [$sources];
-    $query .= shift @$sources;
+    #$query .= shift @$sources;
+    my $first = 1;
     foreach my $source (@$sources) {
         if (ref $source eq 'HASH') {
-            $query .= ' ' . uc $source->{join} . ' JOIN ';
-            $query .= $source->{source};
+            $query .= ' ' . uc $source->{join} . ' JOIN ' if $source->{join};
+            $query .= $source->{name};
+            $query .= ' AS ' . $source->{as} if $source->{as};
             $query .= ' ON ' . $source->{constraint} if $source->{constraint};
         } else {
-            $query .= ', ';
+            $query .= ', ' unless $first;
             $query .= $source;
         }
+        $first = 0;
     }
 
     if (%{$self->where}) {
