@@ -493,6 +493,29 @@ sub delete_related {
     }
 }
 
+sub set_related {
+    my $self = shift;
+    my ($name) = shift;
+
+    my $relationship = $self->_load_relationship($name);
+
+    die "only 'many to many' is supported"
+      unless $relationship->{type} eq 'many to many';
+
+    my $objects =
+        ref $_[0] eq 'ARRAY' ? $_[0] 
+      : ref $_[0] eq 'HASH'  ? [$_[0]]
+      :                        [{@_}];
+
+    $self->delete_related($name);
+    
+    foreach my $object (@$objects) {
+        $self->create_related($name, %$object);
+    }
+
+    return $self;
+}
+
 sub to_hash {
     my $self = shift;
 

@@ -5,6 +5,9 @@ use lib 't/lib';
 use UserAdmin;
 use Admin;
 
+Admin->delete_objects;
+UserAdmin->delete_objects;
+
 my $admin = Admin->create(name => 'root', password => 'foo');
 ok($admin);
 

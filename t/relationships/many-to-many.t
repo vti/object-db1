@@ -1,4 +1,4 @@
-use Test::More tests => 15;
+use Test::More tests => 21;
 
 use lib 't/lib';
 
@@ -48,3 +48,15 @@ is(Tag->count_objects, 3);
 $article->create_related('tags', name => 'more');
 is($article->count_related('tags'), 2);
 is(Tag->count_objects, 3);
+
+$article->set_related('tags', name => 'foo');
+is($article->count_related('tags'), 1);
+is(Tag->count_objects, 3);
+
+$article->set_related('tags', {name => 'more'});
+is($article->count_related('tags'), 1);
+is(Tag->count_objects, 3);
+
+$article->set_related('tags', [{name => 'more'}, {name => 'haha'}]);
+is($article->count_related('tags'), 2);
+is(Tag->count_objects, 4);
