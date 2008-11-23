@@ -316,6 +316,24 @@ sub find_related {
     return $relationship->{class}->find_objects(
         where => [$to => $self->column($from), @$where],
         single => $single,
+        %params
+    );
+}
+
+sub count_related {
+    my $self = shift;
+    my ($name) = shift;
+
+    my $relationship = $self->_load_relationship($name);
+
+    my %params = @_;
+
+    my ($from, $to) = %{$relationship->{map}};
+
+    my $where = delete $params{where} || [];
+
+    return $relationship->{class}->count_objects(
+        where => [$to => $self->column($from), @$where],
         @_
     );
 }

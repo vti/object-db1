@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 10;
 
 use lib 't/lib';
 
@@ -6,19 +6,24 @@ use Article;
 use User;
 
 my $u = User->create;
+is($u->count_related('articles'), 0);
 
 Article->delete_objects;
 
 my @articles = $u->find_related('articles');
 is(@articles, 0);
 
+Article->create(title => 'mega');
+
 Article->create(user_id => $u->column('id'), title => 'boo');
 Article->create(user_id => $u->column('id'), title => 'foo');
 my @articles = $u->find_related('articles');
 is(@articles, 2);
+is($u->count_related('articles'), 2);
 is($articles[0]->column('title'), 'boo');
 
 @articles = $u->find_related('articles', where => [title => 'foo']);
+is($u->count_related('articles', where => [title => 'foo']), 1);
 is(@articles, 1);
 is($articles[0]->column('title'), 'foo');
 
