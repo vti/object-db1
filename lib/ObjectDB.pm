@@ -107,7 +107,7 @@ sub find {
     my $sql = ObjectDB::SQL->new(command => 'select',
                                  source  => $self->meta->table,
                                  columns => [$self->meta->columns],
-                                 where   => \%params);
+                                 where   => [%params]);
 
     warn $sql if DEBUG;
 
@@ -146,7 +146,7 @@ sub update {
     my $sql = ObjectDB::SQL->new(command => 'update',
                                  table   => $self->meta->table,
                                  columns => \@columns,
-                                 where   => \%params);
+                                 where   => [%params]);
 
     warn $sql if DEBUG;
 
@@ -181,7 +181,7 @@ sub delete {
 
     my $sql = ObjectDB::SQL->new(command => 'delete',
                                  table   => $class->meta->table,
-                                 where   => \%params);
+                                 where   => [%params]);
 
     warn $sql if DEBUG;
 
@@ -262,6 +262,29 @@ sub count_objects {
     my $hash_ref = $dbh->selectrow_hashref("$sql");
 
     return $hash_ref->{count};
+}
+
+sub find_related {
+    my $self = shift;
+    my ($name) = shift;
+    my %params = @_;
+
+    die "unknown relationship $name"
+      unless exists $self->meta->relationships->{$name};
+
+    my $relationship = $self->meta->relationships->{$name};
+
+    my $class = $relationship->{class};
+
+    eval "require $class;";
+
+    my ($from, $to) = %{$relationship->{map}};
+
+    my $where = delete $params{where} || [];
+    return $class->find_objects(
+        where => [$to => $self->column($from), @$where],
+        @_
+    );
 }
 
 sub to_hash {

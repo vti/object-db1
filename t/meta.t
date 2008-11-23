@@ -35,9 +35,41 @@ __PACKAGE__->meta(
     unique_keys => 'foo'
 );
 
+package Artist;
+use base 'ObjectDB';
+
+__PACKAGE__->meta(
+    table => 'artist',
+    columns => 'id',
+    primary_keys => 'id',
+
+    relationships => {
+        albums => {
+            type => 'has_many',
+            class => 'Album',
+            map => {id => 'artist_id'}
+        }
+    }
+);
+
+package Album;
+use base 'ObjectDB';
+
+__PACKAGE__->meta(
+    table => 'album',
+    columns => ['id', 'artist_id'],
+    primary_keys => 'id',
+
+    belongs_to => {
+        name => 'artist',
+        class => 'Artist',
+        map => {artist_id => 'id'}
+    }
+);
+
 package main;
 
-use Test::More tests => 20;
+use Test::More tests => 22;
 
 use lib 't/lib';
 
@@ -67,5 +99,9 @@ is_deeply(Model::Options->meta->auto_increment, 'foo');
 is_deeply([sort Model::Options->meta->columns], [sort qw/ foo /]);
 is_deeply([Model::Options->meta->unique_keys], [qw/ foo /]);
 is(Model::Options->meta->is_unique_key('foo'), 1);
+
+my $relationships = Artist->meta->relationships;
+is(keys %$relationships, 1);
+is_deeply($relationships->{albums}->{class}, 'Album');
 
 1;

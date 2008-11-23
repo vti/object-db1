@@ -43,9 +43,15 @@ sub _where_to_string {
 
     my $string = "";
 
-    if (ref $where eq 'HASH') {
-        foreach my $key (keys %$where) {
-            $string .= "$key = '$where->{$key}'";
+    if (ref $where eq 'ARRAY') {
+        my $count = 0;
+        while (my ($key, $value) = @{$where}[$count, $count + 1]) {
+            last unless $key;
+
+            $string .= ' AND ' unless $count == 0;
+            $string .= "$key = '$value'";
+
+            $count += 2;
         }
     } else {
         $string .= $where;

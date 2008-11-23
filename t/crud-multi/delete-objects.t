@@ -9,5 +9,5 @@ is(User->count_objects, 0);
 
 User->create(name => 'foo');
 User->create(name => 'bar');
-User->delete_objects(where => {name => 'foo'});
+User->delete_objects(where => [name => 'foo']);
 is(User->count_objects, 1);

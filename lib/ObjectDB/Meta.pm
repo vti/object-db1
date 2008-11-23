@@ -10,6 +10,7 @@ require Carp;
 
 __PACKAGE__->attr('table', chained => 1);
 __PACKAGE__->attr('auto_increment', chained => 1);
+__PACKAGE__->attr('relationships', chained => 1);
 
 __PACKAGE__->attr('_primary_keys', default => sub {[]}, chained => 1);
 __PACKAGE__->attr('_unique_keys', default => sub {[]}, chained => 1);
@@ -33,11 +34,11 @@ sub new {
 
     my %values;
 
-    my $columns        = $params{columns};
-    my $primary_keys   = $params{primary_keys};
-    my $unique_keys   = $params{unique_keys};
-    my $table          = $params{table};
-    my $auto_increment = $params{auto_increment};
+    my $columns        = delete $params{columns};
+    my $primary_keys   = delete $params{primary_keys};
+    my $unique_keys    = delete $params{unique_keys};
+    my $table          = delete $params{table};
+    my $auto_increment = delete $params{auto_increment};
 
     Carp::croak("No table in $for_class") unless $table;
     Carp::croak("No columns in $for_class") unless $columns;
@@ -50,12 +51,15 @@ sub new {
     $primary_keys = ref $primary_keys ? $primary_keys : [$primary_keys];
     $unique_keys = ref $unique_keys ? $unique_keys : [$unique_keys];
 
-    my $self = $class->SUPER::new(table          => $table,
-                                  auto_increment => $auto_increment,
-                                  _columns       => $columns,
-                                  _columns_array => \@columns,
-                                  _primary_keys  => $primary_keys,
-                                  _unique_keys  => $unique_keys);
+    my $self = $class->SUPER::new(
+        table          => $table,
+        auto_increment => $auto_increment,
+        _columns       => $columns,
+        _columns_array => \@columns,
+        _primary_keys  => $primary_keys,
+        _unique_keys   => $unique_keys,
+        @_
+    );
 
     return $self;
 }

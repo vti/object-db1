@@ -8,7 +8,7 @@ User->delete_objects;
 
 User->create(name => 'foo', password => 'bar');
 
-User->update_objects(where => {name => 'foo'}, bind => [qw/ haha xexe /]);
+User->update_objects(where => [name => 'foo'], bind => [qw/ haha xexe /]);
 
 @users = User->find_objects;
 is(@users, 1);
