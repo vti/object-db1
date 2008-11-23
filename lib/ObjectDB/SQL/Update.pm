@@ -5,9 +5,8 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-__PACKAGE__->attr([qw/ _parent table /], chained => 1);
+__PACKAGE__->attr([qw/ _parent table where /], chained => 1);
 __PACKAGE__->attr([qw/ columns bind /], default => sub {[]}, chained => 1);
-__PACKAGE__->attr('where', default => sub {{}}, chained => 1);
 
 sub add_columns {
     my $self = shift;
@@ -33,7 +32,7 @@ sub to_string {
         $i--;
     }
 
-    if (%{$self->where}) {
+    if ($self->where) {
         $query .= ' WHERE ';
         $query .= $self->_parent->_where_to_string($self->where);
     }

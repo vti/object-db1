@@ -42,8 +42,13 @@ sub _where_to_string {
     my ($where) = @_;
 
     my $string = "";
-    foreach my $key (keys %$where) {
-        $string .= "$key = '$where->{$key}'";
+
+    if (ref $where eq 'HASH') {
+        foreach my $key (keys %$where) {
+            $string .= "$key = '$where->{$key}'";
+        }
+    } else {
+        $string .= $where;
     }
 
     return $string;

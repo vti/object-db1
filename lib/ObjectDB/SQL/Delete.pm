@@ -5,8 +5,7 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-__PACKAGE__->attr([qw/ _parent table bind /], chained => 1);
-__PACKAGE__->attr('where', default => sub {{}}, chained => 1);
+__PACKAGE__->attr([qw/ _parent table where bind /], chained => 1);
 
 sub to_string {
     my $self = shift;
@@ -16,7 +15,7 @@ sub to_string {
     $query .= 'DELETE FROM ';
     $query .= $self->table;
 
-    if (%{$self->where}) {
+    if ($self->where) {
         $query .= ' WHERE ';
         $query .= $self->_parent->_where_to_string($self->where);
     }

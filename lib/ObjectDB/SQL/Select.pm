@@ -7,7 +7,7 @@ use base 'ObjectDB::Base';
 
 __PACKAGE__->attr([qw/ _parent source group_by having order_by limit offset /], chained => 1);
 __PACKAGE__->attr([qw/ columns bin /], default => sub {[]}, chained => 1);
-__PACKAGE__->attr('where', default => sub {{}}, chained => 1);
+__PACKAGE__->attr('where', chained => 1);
 
 sub add_columns {
     my $self = shift;
@@ -49,7 +49,7 @@ sub to_string {
         $first = 0;
     }
 
-    if (%{$self->where}) {
+    if ($self->where) {
         $query .= ' WHERE ';
         $query .= $self->_parent->_where_to_string($self->where);
     }
