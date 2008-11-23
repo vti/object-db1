@@ -74,7 +74,7 @@ sub create {
 
     my @values = map { $self->column($_) } $self->meta->columns;
 
-    warn "$sql: " . join(', ', @values) if DEBUG;
+    warn "$sql" if DEBUG;
 
     my $sth = $dbh->prepare("$sql");
     my $rv = $sth->execute(@values);
@@ -209,7 +209,7 @@ sub find_objects {
         my $sth = $dbh->prepare("$sql");
 
         my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
-        return if $results eq '0E0';
+        return unless @$results;
 
         return $class->new(%{$results->[0]});
     } elsif (wantarray) {
@@ -218,7 +218,7 @@ sub find_objects {
         my $sth = $dbh->prepare("$sql");
 
         my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
-        return () if $results eq '0E0';
+        return () unless @$results;
 
         return map { $class->new(%{$_}) } @$results;
     } else {
@@ -315,13 +315,43 @@ sub create_related {
 
     my $relationship = $self->_load_relationship($name);
 
-    unless ($relationship->{type} eq 'one to many') {
-        die "can be called only on 'one to many' relationships";
+    unless ($relationship->{type} eq 'one to many'
+        || $relationship->{type} eq 'many to many')
+    {
+        die
+          "can be called only on 'one to many' or 'many to many' relationships";
     }
 
-    my ($from, $to) = %{$relationship->{map}};
+    if ($relationship->{type} eq 'many to many') {
+        if (my $object = $self->find_related($name, single => 1, where => [@_])) {
+            return $object;
+        }
 
-    return $relationship->{class}->create($to => $self->column($from), @_);
+        my $map_from = $relationship->{map_from};
+        my $map_to = $relationship->{map_to};
+
+        my ($from_foreign_pk, $from_pk) =
+          %{$relationship->{map_class}->meta->relationships->{$map_from}
+              ->{map}};
+
+        my ($to_foreign_pk, $to_pk) =
+          %{$relationship->{map_class}->meta->relationships->{$map_to}
+              ->{map}};
+
+        my $object;
+        unless ($object = $relationship->{class}->find(@_)) {
+            $object = $relationship->{class}->create(@_);
+        }
+
+        $relationship->{map_class}->create(
+            $from_foreign_pk => $self->column($from_pk),
+            $to_foreign_pk   => $object->column($to_pk)
+        );
+    } else {
+        my ($from, $to) = %{$relationship->{map}};
+
+        return $relationship->{class}->create($to => $self->column($from), @_);
+    }
 }
 
 sub find_related {
@@ -362,6 +392,8 @@ sub find_related {
             || $relationship->{type} eq 'one to one')
         {
             $params{single} = 1;
+
+            return unless defined $self->column($from);
         }
 
         $params{where} ||= [];
@@ -455,7 +487,7 @@ sub delete_related {
         my ($from, $to) = %{$relationship->{map}};
 
         $params{where} ||= [];
-        push @{$params{where}}, ($to => $self->column($from)),
+        push @{$params{where}}, ($to => $self->column($from));
 
         return $relationship->{class}->delete_objects(%params);
     }
