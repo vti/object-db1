@@ -31,15 +31,19 @@ sub to_string {
     }
 
     $query .= ' FROM ';
-    if (ref $self->source eq 'HASH') {
-        $query .= $self->source->{source};
 
-        my $join = $self->source->{join};
-        $query .= ' ' . uc $join->{op} . ' JOIN ';
-        $query .= $join->{source};
-        $query .= ' ON ' . $join->{constraint};
-    } else {
-        $query .= $self->source;
+    my $sources = $self->source;
+    $sources = ref $sources eq 'ARRAY' ? $sources : [$sources];
+    $query .= shift @$sources;
+    foreach my $source (@$sources) {
+        if (ref $source eq 'HASH') {
+            $query .= ' ' . uc $source->{join} . ' JOIN ';
+            $query .= $source->{source};
+            $query .= ' ON ' . $source->{constraint} if $source->{constraint};
+        } else {
+            $query .= ', ';
+            $query .= $source;
+        }
     }
 
     if (%{$self->where}) {
@@ -47,30 +51,15 @@ sub to_string {
         $query .= $self->_parent->_where_to_string($self->where);
     }
 
-    if ($self->group_by) {
-        $query .= ' GROUP BY ';
-        $query .= $self->group_by;
-    }
+    $query .= ' GROUP BY ' . $self->group_by if $self->group_by;
 
-    if ($self->having) {
-        $query .= ' HAVING ';
-        $query .= $self->having;
-    }
+    $query .= ' HAVING ' . $self->having if $self->having;
 
-    if ($self->order_by) {
-        $query .= ' ORDER BY ';
-        $query .= $self->order_by;
-    }
+    $query .= ' ORDER BY ' . $self->order_by if $self->order_by;
 
-    if ($self->limit) {
-        $query .= ' LIMIT ';
-        $query .= $self->limit;
-    }
+    $query .= ' LIMIT ' . $self->limit if $self->limit;
 
-    if ($self->offset) {
-        $query .= ' OFFSET ';
-        $query .= $self->offset;
-    }
+    $query .= ' OFFSET ' . $self->offset if $self->offset;
 
     return $query;
 }
