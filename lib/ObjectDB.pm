@@ -201,12 +201,12 @@ sub find_objects {
                                  columns => [$class->meta->columns],
                                  %params);
 
-    my $sth = $dbh->prepare("$sql");
-
     if ($single) {
         $sql->limit(1);
 
         warn $sql if DEBUG;
+
+        my $sth = $dbh->prepare("$sql");
 
         my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
         return if $results eq '0E0';
@@ -215,12 +215,16 @@ sub find_objects {
     } elsif (wantarray) {
         warn $sql if DEBUG;
 
+        my $sth = $dbh->prepare("$sql");
+
         my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
         return () if $results eq '0E0';
 
         return map { $class->new(%{$_}) } @$results;
     } else {
         warn $sql if DEBUG;
+
+        my $sth = $dbh->prepare("$sql");
 
         $sth->execute();
 
@@ -288,7 +292,17 @@ sub _load_relationship {
 
     my $relationship = $self->meta->relationships->{$name};
 
-    my $class = $relationship->{class};
+    my $class;
+    
+    if ($relationship->{type} eq 'many to many') {
+        $class = $relationship->{map_class};
+        eval "require $class;";
+
+        $relationship->{class} =
+          $class->meta->relationships->{$relationship->{map_to}}->{class};
+    }
+
+    $class = $relationship->{class};
 
     eval "require $class;";
 
@@ -303,21 +317,42 @@ sub find_related {
 
     my %params = @_;
 
-    my ($from, $to) = %{$relationship->{map}};
+    #select * from tag join article_tag_map on tag.id=article_tag_map.tag_id where article_id=4;
+    if ($relationship->{type} eq 'many to many') {
+        my $map_from = $relationship->{map_from};
+        my $map_to = $relationship->{map_to};
 
-    my $where = delete $params{where} || [];
+        my ($to, $from) =
+          %{$relationship->{map_class}->meta->relationships->{$map_from}
+              ->{map}};
 
-    my $single = 0;
-    if ($relationship->{type} eq 'many to one') {
-        $single = 1;
-        $where = [];
+        $params{where} ||= [];
+        push @{$params{where}}, ($to => $self->column($from));
+
+        ($from, $to) =
+          %{$relationship->{map_class}->meta->relationships->{$map_to}
+              ->{map}};
+
+        my $table = $relationship->{class}->meta->table;
+        my $map_table = $relationship->{map_class}->meta->table;
+        $params{source} = [ $table ,
+            {   name     => $map_table,
+                join       => 'left',
+                constraint => "$table.$to=$map_table.$from"
+            }
+        ];
+    } else {
+        my ($from, $to) = %{$relationship->{map}};
+
+        if ($relationship->{type} eq 'many to one') {
+            $params{single} = 1;
+        }
+
+        $params{where} ||= [];
+        push @{$params{where}}, ($to => $self->column($from));
     }
 
-    return $relationship->{class}->find_objects(
-        where => [$to => $self->column($from), @$where],
-        single => $single,
-        %params
-    );
+    return $relationship->{class}->find_objects(%params);
 }
 
 sub count_related {

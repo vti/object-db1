@@ -16,6 +16,12 @@ __PACKAGE__->meta(
             type => 'many to one',
             class => 'User',
             map => {user_id => 'id'}
+        },
+        tags => {
+            type      => 'many to many',
+            map_class => 'ArticleTagMap',
+            map_from  => 'article',
+            map_to    => 'tag'
         }
     }
 );
