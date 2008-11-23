@@ -1,4 +1,4 @@
-use Test::More tests => 3;
+use Test::More tests => 5;
 
 use lib 't/lib';
 
@@ -8,6 +8,8 @@ use ArticleTagMap;
 
 my $article = Article->create(title => 'foo');
 my $tag = Tag->create(name => 'shit');
+
+ArticleTagMap->delete_objects;
 
 my $map = ArticleTagMap->create(
     article_id => $article->column('id'),
@@ -22,3 +24,5 @@ is($map_tag->column('name'), 'shit');
 
 my @tags = $article->find_related('tags');
 is(@tags, 1);
+is($tags[0]->column('article_id'), $article->column('article_id'));
+is($tags[0]->column('tag_id'), $tag->column('tag_id'));
