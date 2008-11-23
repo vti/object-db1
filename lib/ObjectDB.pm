@@ -278,13 +278,13 @@ sub count_objects {
     return $hash_ref->{count};
 }
 
-sub find_related {
+sub _load_relationship {
     my $self = shift;
-    my ($name) = shift;
-    my %params = @_;
+    my ($name) = @_;
 
     die "unknown relationship $name"
-      unless exists $self->meta->relationships->{$name};
+      unless $self->meta->relationships
+          && exists $self->meta->relationships->{$name};
 
     my $relationship = $self->meta->relationships->{$name};
 
@@ -292,10 +292,47 @@ sub find_related {
 
     eval "require $class;";
 
+    return $relationship;
+}
+
+sub find_related {
+    my $self = shift;
+    my ($name) = shift;
+
+    my $relationship = $self->_load_relationship($name);
+
+    my %params = @_;
+
     my ($from, $to) = %{$relationship->{map}};
 
     my $where = delete $params{where} || [];
-    return $class->find_objects(
+
+    my $single = 0;
+    if ($relationship->{type} eq 'belongs_to') {
+        $single = 1;
+        $where = [];
+    }
+
+    return $relationship->{class}->find_objects(
+        where => [$to => $self->column($from), @$where],
+        single => $single,
+        @_
+    );
+}
+
+sub delete_related {
+    my $self = shift;
+    my ($name) = shift;
+
+    my $relationship = $self->_load_relationship($name);
+
+    my %params = @_;
+
+    my ($from, $to) = %{$relationship->{map}};
+
+    my $where = delete $params{where} || [];
+
+    return $relationship->{class}->delete_objects(
         where => [$to => $self->column($from), @$where],
         @_
     );

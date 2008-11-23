@@ -1,4 +1,4 @@
-use Test::More tests => 5;
+use Test::More tests => 7;
 
 use lib 't/lib';
 
@@ -21,3 +21,11 @@ is($articles[0]->column('title'), 'boo');
 @articles = $u->find_related('articles', where => [title => 'foo']);
 is(@articles, 1);
 is($articles[0]->column('title'), 'foo');
+
+$u->delete_related('articles', where => [title => 'boo']);
+@articles = $u->find_related('articles', where => [title => 'boo']);
+is(@articles, 0);
+
+$u->delete_related('articles');
+@articles = $u->find_related('articles');
+is(@articles, 0);
