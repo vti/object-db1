@@ -12,6 +12,8 @@ use ObjectDB::Iterator;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
+__PACKAGE__->attr([qw/ is_in_db is_modified /], default => 0);
+
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new();
@@ -24,9 +26,11 @@ sub new {
 sub init {
     my $self = shift;
 
+    $self->{_columns} ||= {};
+
     my %values = @_;
     foreach my $key ($self->meta->columns) {
-        $self->column($key => $values{$key}) if exists $values{$key};
+        $self->{_columns}->{$key} = $values{$key} if exists $values{$key};
     }
 }
 
@@ -67,6 +71,10 @@ sub column {
     if (@_ == 1) {
         return $self->{_columns}->{$_[0]};
     } elsif (@_ == 2) {
+        if (defined $self->{_columns}->{$_[0]} && defined $_[1]) {
+            $self->is_modified(1) if $self->{_columns}->{$_[0]} ne $_[1];
+        }
+
         $self->{_columns}->{$_[0]} = $_[1];
     }
 
@@ -96,6 +104,9 @@ sub create {
         $self->column($auto_increment => $dbh->last_insert_id(undef, undef,
                 $self->meta->table, $auto_increment));
     }
+
+    $self->is_in_db(1);
+    $self->is_modified(0);
 
     return $self;
 }
@@ -127,6 +138,7 @@ sub find {
     return unless keys %$hash_ref;
 
     $self->init(%$hash_ref);
+    $self->is_in_db(1);
 
     return $self;
 }

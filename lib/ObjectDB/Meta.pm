@@ -11,6 +11,7 @@ require Carp;
 __PACKAGE__->attr('table', chained => 1);
 __PACKAGE__->attr('auto_increment', chained => 1);
 __PACKAGE__->attr('relationships', chained => 1);
+__PACKAGE__->attr('class', chained => 1);
 
 __PACKAGE__->attr('_primary_keys', default => sub {[]}, chained => 1);
 __PACKAGE__->attr('_unique_keys', default => sub {[]}, chained => 1);
@@ -52,6 +53,7 @@ sub new {
     $unique_keys = ref $unique_keys ? $unique_keys : [$unique_keys];
 
     my $self = $class->SUPER::new(
+        class          => $for_class,
         table          => $table,
         auto_increment => $auto_increment,
         _columns       => $columns,
