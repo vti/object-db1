@@ -5,7 +5,7 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-__PACKAGE__->attr([qw/ table /], chained => 1);
+__PACKAGE__->attr([qw/ table driver /], chained => 1);
 __PACKAGE__->attr('columns', default => sub { [] }, chained => 1);
 __PACKAGE__->attr('bind', default => sub { [] }, chained => 1);
 
@@ -24,12 +24,20 @@ sub to_string {
 
     $query .= 'INSERT INTO ';
     $query .= $self->table;
-    $query .= ' (';
-    $query .= join(', ', @{$self->columns});
-    $query .= ')';
-    $query .= ' VALUES (';
-    $query .= '?, ' x (@{$self->columns} - 1);
-    $query .= '?)';
+    if (@{$self->columns}) {
+        $query .= ' (';
+        $query .= join(', ', @{$self->columns});
+        $query .= ')';
+        $query .= ' VALUES (';
+        $query .= '?, ' x (@{$self->columns} - 1);
+        $query .= '?)';
+    } else {
+        if ($self->driver && $self->driver eq 'mysql') {
+            $query .= '() VALUES()';
+        } else {
+            $query .= ' DEFAULT VALUES';
+        }
+    }
 
     return $query;
 }

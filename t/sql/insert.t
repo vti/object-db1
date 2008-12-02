@@ -1,8 +1,11 @@
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 use ObjectDB::SQL;
 
 my $sql = ObjectDB::SQL->new();
+
+$sql->command('insert')->table('foo');
+is("$sql", "INSERT INTO foo DEFAULT VALUES");
 
 $sql->command('insert');
 $sql->table('foo');

@@ -26,7 +26,7 @@ sub init {
 
     my %values = @_;
     foreach my $key ($self->meta->columns) {
-        $self->column($key => $values{$key});
+        $self->column($key => $values{$key}) if exists $values{$key};
     }
 }
 
@@ -46,6 +46,17 @@ sub meta {
 
     return $ObjectDB::Meta::objects{$class} ||=
       ObjectDB::Meta->new($class, @_);
+}
+
+sub columns {
+    my $self = shift;
+
+    my @columns;
+    foreach ($self->meta->columns) {
+        push @columns, $_ if exists $self->{_columns}->{$_};
+    }
+
+    return @columns;
 }
 
 sub column {
@@ -70,9 +81,9 @@ sub create {
 
     my $sql = ObjectDB::SQL->new(command => 'insert',
                                  table   => $self->meta->table,
-                                 columns => [$self->meta->columns]);
+                                 columns => [$self->columns]);
 
-    my @values = map { $self->column($_) } $self->meta->columns;
+    my @values = map { $self->column($_) } $self->columns;
 
     warn "$sql" if DEBUG;
 
@@ -347,10 +358,19 @@ sub create_related {
             $from_foreign_pk => $self->column($from_pk),
             $to_foreign_pk   => $object->column($to_pk)
         );
+
+        return $object;
     } else {
         my ($from, $to) = %{$relationship->{map}};
 
-        return $relationship->{class}->create($to => $self->column($from), @_);
+        my @params = ($to => $self->column($from));
+
+        if ($relationship->{as}) {
+            my ($column, $value) = %{$relationship->{as}};
+            push @params, ($column => $value);
+        }
+
+        return $relationship->{class}->create(@params, @_);
     }
 }
 
