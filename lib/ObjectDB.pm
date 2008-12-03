@@ -113,12 +113,12 @@ sub create {
 
 sub find {
     my $class = shift;
-    my $self = ref $class ? $class : $class->new();
-    my %params = @_;
+    my $self = ref $class ? $class : $class->new(@_);
+    #my %params = @_;
 
-    my @names = keys %params;
+    #my @names = keys %params;
 
-    foreach my $name (@names) {
+    foreach my $name ($self->columns) {
         die "$name is not primary key or unique column"
           unless $self->meta->is_primary_key($name)
               || $self->meta->is_unique_key($name);
@@ -129,7 +129,7 @@ sub find {
     my $sql = ObjectDB::SQL->new(command => 'select',
                                  source  => $self->meta->table,
                                  columns => [$self->meta->columns],
-                                 where   => [%params]);
+                                 where   => [%{$self->to_hash}]);
 
     warn $sql if DEBUG;
 
@@ -551,7 +551,7 @@ sub set_related {
 sub to_hash {
     my $self = shift;
 
-    my @columns = $self->meta->columns;
+    my @columns = $self->columns;
 
     my $hash = {};
     foreach my $key (@columns) {

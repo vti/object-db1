@@ -6,7 +6,7 @@ use User;
 
 my $u = User->new(name => 'bar');
 
-is_deeply($u->to_hash, {id => undef, name => 'bar', password => undef});
+is_deeply($u->to_hash, {name => 'bar'});
 
 is($u->is_in_db, 0);
 is($u->is_modified, 0);
