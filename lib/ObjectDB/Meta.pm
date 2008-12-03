@@ -63,6 +63,17 @@ sub new {
         @_
     );
 
+    # preload relationship classes
+    if ($self->relationships && %{$self->relationships}) {
+        foreach my $rel (keys %{$self->relationships}) {
+            my $rel_class = $self->relationships->{$rel}->{class};
+            next unless $rel_class;
+            next if $objects{$rel_class};
+            next if $rel_class->can('isa');
+            eval "require $rel_class;";
+        }
+    }
+
     return $self;
 }
 
