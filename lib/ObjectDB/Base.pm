@@ -4,6 +4,8 @@ package ObjectDB::Base;
 use strict;
 use warnings;
 
+require Carp;
+
 sub new {
     my $class = shift;
 
