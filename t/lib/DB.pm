@@ -12,11 +12,13 @@ sub init_db {
 
     return $dbh if $dbh;
 
-    $dbh = DBI->connect('dbi:SQLite:table.db');
+    $dbh = DBI->connect_cached('dbi:SQLite:table.db');
+    die $DBI::errorstr unless $dbh;
+
     $dbh->do("PRAGMA default_synchronous = OFF");
     $dbh->do("PRAGMA temp_store = MEMORY");
 
-    die $DBI::errorstr unless $dbh;
+    return $dbh;
 }
 
 1;

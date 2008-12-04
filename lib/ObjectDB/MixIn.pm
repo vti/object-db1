@@ -15,6 +15,7 @@ sub import {
 
     foreach my $method (keys %$symtable) {
         next if $method =~ m/^(?:ISA|isa|BEGIN|import|_)/;
+
         *{"${target_class}::$method"} = \&{"$class\::$method"};
     }
 }

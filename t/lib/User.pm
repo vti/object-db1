@@ -16,12 +16,6 @@ __PACKAGE__->meta(
             type  => 'one to many',
             class => 'Article',
             map   => {id => 'user_id'}
-        },
-        resources => {
-            type        => 'one to many',
-            class       => 'Resource',
-            polymorphic => {type => 'type'},
-            map         => {id => 'user_id'}
         }
     }
 );
