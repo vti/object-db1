@@ -315,6 +315,15 @@ sub _load_relationship {
 
     my $relationship = $self->meta->relationships->{$name};
 
+    if ($relationship->{type} eq 'proxy') {
+        my $proxy_key = $relationship->{proxy_key};
+
+        die "proxy_key is required for $name" unless $proxy_key;
+
+        $name = $self->column($proxy_key);
+        $relationship = $self->meta->relationships->{$name};
+    }
+
     my $class;
     
     if ($relationship->{type} eq 'many to many') {
@@ -377,8 +386,8 @@ sub create_related {
 
         my @params = ($to => $self->column($from));
 
-        if ($relationship->{as}) {
-            my ($column, $value) = %{$relationship->{as}};
+        if ($relationship->{where}) {
+            my ($column, $value) = %{$relationship->{where}};
             push @params, ($column => $value);
         }
 
@@ -393,6 +402,7 @@ sub find_related {
     my $relationship = $self->_load_relationship($name);
 
     my %params = @_;
+    $params{where} ||= [];
 
     if ($relationship->{type} eq 'many to many') {
         my $map_from = $relationship->{map_from};
@@ -402,7 +412,6 @@ sub find_related {
           %{$relationship->{map_class}->meta->relationships->{$map_from}
               ->{map}};
 
-        $params{where} ||= [];
         push @{$params{where}}, ($to => $self->column($from));
 
         ($from, $to) =
@@ -428,8 +437,11 @@ sub find_related {
             return unless defined $self->column($from);
         }
 
-        $params{where} ||= [];
         push @{$params{where}}, ($to => $self->column($from));
+    }
+
+    if ($relationship->{where}) {
+        push @{$params{where}}, %{$relationship->{where}};
     }
 
     return $relationship->{class}->find_objects(%params);
@@ -442,6 +454,7 @@ sub count_related {
     my $relationship = $self->_load_relationship($name);
 
     my %params = @_;
+    $params{where} ||= [];
 
     if ($relationship->{type} eq 'many to many') {
         my $map_from = $relationship->{map_from};
@@ -451,7 +464,6 @@ sub count_related {
           %{$relationship->{map_class}->meta->relationships->{$map_from}
               ->{map}};
 
-        $params{where} ||= [];
         push @{$params{where}}, ($to => $self->column($from));
 
         ($from, $to) =
@@ -469,8 +481,11 @@ sub count_related {
     } else {
         my ($from, $to) = %{$relationship->{map}};
 
-        $params{where} ||= [];
         push @{$params{where}}, ($to => $self->column($from)),
+    }
+
+    if ($relationship->{where}) {
+        push @{$params{where}}, %{$relationship->{where}};
     }
 
     return $relationship->{class}->count_objects(%params);
@@ -489,6 +504,10 @@ sub update_related {
 
     my $where = delete $params{where} || [];
 
+    if ($relationship->{where}) {
+        push @$where, %{$relationship->{where}};
+    }
+
     return $relationship->{class}->update_objects(
         where => [$to => $self->column($from), @$where],
         @_
@@ -502,7 +521,9 @@ sub delete_related {
     my $relationship = $self->_load_relationship($name);
 
     my %params = @_;
+    $params{where} ||= [];
 
+    my $class_param = 'class';
     if ($relationship->{type} eq 'many to many') {
         my $map_from = $relationship->{map_from};
         my $map_to = $relationship->{map_to};
@@ -511,18 +532,20 @@ sub delete_related {
           %{$relationship->{map_class}->meta->relationships->{$map_from}
               ->{map}};
 
-        $params{where} ||= [];
         push @{$params{where}}, ($to => $self->column($from));
 
-        return $relationship->{map_class}->delete_objects(%params);
+        $class_param = 'map_class';
     } else {
         my ($from, $to) = %{$relationship->{map}};
 
-        $params{where} ||= [];
         push @{$params{where}}, ($to => $self->column($from));
-
-        return $relationship->{class}->delete_objects(%params);
     }
+
+    if ($relationship->{where}) {
+        push @{$params{where}}, %{$relationship->{where}};
+    }
+
+    return $relationship->{$class_param}->delete_objects(%params);
 }
 
 sub set_related {
