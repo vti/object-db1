@@ -13,7 +13,7 @@ sub to_string {
     my $query = "";
 
     $query .= 'DELETE FROM ';
-    $query .= $self->table;
+    $query .= '`' . $self->table . '`';
 
     if ($self->where) {
         $query .= ' WHERE ';

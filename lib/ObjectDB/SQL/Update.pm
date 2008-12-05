@@ -22,7 +22,7 @@ sub to_string {
     my $query = "";
 
     $query .= 'UPDATE ';
-    $query .= $self->table;
+    $query .= '`' . $self->table . '`';
     $query .= ' SET ';
 
     my $i = @{$self->columns} - 1;

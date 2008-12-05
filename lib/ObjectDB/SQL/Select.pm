@@ -25,7 +25,7 @@ sub to_string {
     $query .= 'SELECT ';
 
     if (@{$self->columns}) {
-        $query .= join(', ', @{$self->columns});
+        $query .= join(', ', map {ref $_ ? $$_ : "`$_`"} @{$self->columns});
     } else {
         $query .= '*';
     }
@@ -39,12 +39,12 @@ sub to_string {
     foreach my $source (@$sources) {
         if (ref $source eq 'HASH') {
             $query .= ' ' . uc $source->{join} . ' JOIN ' if $source->{join};
-            $query .= $source->{name};
+            $query .= '`' . $source->{name} . '`';
             $query .= ' AS ' . $source->{as} if $source->{as};
             $query .= ' ON ' . $source->{constraint} if $source->{constraint};
         } else {
             $query .= ', ' unless $first;
-            $query .= $source;
+            $query .= '`' . $source . '`';
         }
         $first = 0;
     }

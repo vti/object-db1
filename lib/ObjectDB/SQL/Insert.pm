@@ -23,10 +23,10 @@ sub to_string {
     my $query = "";
 
     $query .= 'INSERT INTO ';
-    $query .= $self->table;
+    $query .= '`' . $self->table . '`';
     if (@{$self->columns}) {
         $query .= ' (';
-        $query .= join(', ', @{$self->columns});
+        $query .= join(', ', map {"`$_`"} @{$self->columns});
         $query .= ')';
         $query .= ' VALUES (';
         $query .= '?, ' x (@{$self->columns} - 1);

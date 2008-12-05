@@ -294,7 +294,7 @@ sub count_objects {
     my $dbh = $class->init_db;
 
     my $sql = ObjectDB::SQL->new(command => 'select',
-                                 columns => ['COUNT(*) AS count'],
+                                 columns => [\'COUNT(*) AS count'],
                                  source  => $class->meta->table,
                                  @_);
 
