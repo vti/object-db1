@@ -45,9 +45,21 @@ sub new {
     Carp::croak("No columns in $for_class") unless $columns;
     Carp::croak("No primary keys in $for_class") unless $primary_keys;
 
-    my @columns =
+    my @columns_raw =
       ref $columns ? @{$columns} : ($columns);
-    $columns = {map { $_ => {} } @columns };
+
+    my @columns = ();
+    $columns = {};
+    my $prev;
+    while (my $col = shift @columns_raw) {
+        if (ref $col eq 'HASH') {
+            $columns->{$prev} = $col;
+        } else {
+            $columns->{$col} = {};
+            push @columns, $col;
+        }
+        $prev = $col;
+    }
 
     $primary_keys = ref $primary_keys ? $primary_keys : [$primary_keys];
     $unique_keys = ref $unique_keys ? $unique_keys : [$unique_keys];

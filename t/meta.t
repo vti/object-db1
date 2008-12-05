@@ -75,9 +75,18 @@ use base 'Album';
 __PACKAGE__->meta->add_column('year');
 __PACKAGE__->meta->add_relationship(foo => {type => 'one to one'});
 
+package ColumnsWithOptions;
+use base 'ObjectDB';
+
+__PACKAGE__->meta(
+    table        => 'table',
+    columns      => ['id', title => {length => 1}],
+    primary_keys => 'id'
+);
+
 package main;
 
-use Test::More tests => 24;
+use Test::More tests => 26;
 
 use lib 't/lib';
 
@@ -115,5 +124,9 @@ is_deeply($relationships->{albums}->{class}, 'Album');
 $relationships = Advanced->meta->relationships;
 is(keys %$relationships, 2);
 is_deeply($relationships->{foo}->{type}, 'one to one');
+
+is_deeply([ColumnsWithOptions->meta->columns], [qw/ id title /]);
+is_deeply(ColumnsWithOptions->meta->_columns,
+    {id => {}, title => {length => 1}});
 
 1;
