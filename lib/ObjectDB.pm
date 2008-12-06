@@ -591,7 +591,6 @@ sub is_valid {
     my $self = shift;
 
     my $errors = 0;
-    use Data::Dumper;
     foreach my $col ($self->meta->columns) {
         my $options = $self->meta->_columns->{$col};
 
