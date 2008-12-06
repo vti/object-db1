@@ -55,7 +55,7 @@ sub attr {
         my $code = "sub {\n";
 
         # Warning gets optimized away
-        unless ($ENV{MOJO_BASE_OPTIMIZE}) {
+        unless ($ENV{OBJECTDB_BASE_OPTIMIZE}) {
 
             # Check invocant
             $code .= "${ws}Carp::confess(q[";
@@ -118,7 +118,7 @@ sub attr {
         Carp::croak("Mojo::Base compiler error: \n$code\n$@\n") if $@;
 
         # Debug mode
-        if ($ENV{MOJO_BASE_DEBUG}) {
+        if ($ENV{OBJECTDB_BASE_DEBUG}) {
             warn "\nATTRIBUTE: $class->$attr\n";
             warn "$code\n\n";
         }
