@@ -31,7 +31,14 @@ sub init {
 
     my %values = @_;
     foreach my $key ($self->meta->columns) {
-        $self->{_columns}->{$key} = $values{$key} if exists $values{$key};
+        if (exists $values{$key}) {
+            $self->{_columns}->{$key} = $values{$key};
+        }
+        elsif (
+            defined(my $default = $self->meta->_columns->{$key}->{default}))
+        {
+            $self->{_columns}->{$key} = $default;
+        }
     }
 }
 
@@ -57,8 +64,16 @@ sub columns {
     my $self = shift;
 
     my @columns;
-    foreach ($self->meta->columns) {
-        push @columns, $_ if exists $self->{_columns}->{$_};
+    foreach my $key ($self->meta->columns) {
+        if (exists $self->{_columns}->{$key}) {
+            push @columns, $key;
+        }
+        elsif (
+            defined(my $default = $self->meta->_columns->{$key}->{default}))
+        {
+            $self->{_columns}->{$key} = $default;
+            push @columns, $key;
+        }
     }
 
     return @columns;

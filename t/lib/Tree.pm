@@ -7,7 +7,7 @@ use base 'DB';
 
 __PACKAGE__->meta(
     table        => 'tree',
-    columns      => [qw/ id parent_id title path level /],
+    columns      => [qw/ id parent_id title path /, level => {default => 0}],
     primary_keys => [qw/ id /],
     auto_increment => 'id',
 
@@ -38,8 +38,6 @@ sub create {
 
         $self->column(path => $path);
         $self->column(level => ++($path =~ tr/-//));
-    } else {
-        $self->column(level => 0);
     }
 
     $self->SUPER::create();
