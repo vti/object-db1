@@ -86,7 +86,7 @@ __PACKAGE__->meta(
 
 package main;
 
-use Test::More tests => 26;
+use Test::More tests => 27;
 
 use lib 't/lib';
 
@@ -116,6 +116,7 @@ is_deeply(Model::Options->meta->auto_increment, 'foo');
 is_deeply([sort Model::Options->meta->columns], [sort qw/ foo /]);
 is_deeply([Model::Options->meta->unique_keys], [qw/ foo /]);
 is(Model::Options->meta->is_unique_key('foo'), 1);
+is(Model::Options->meta->is_auto_increment('foo'), 1);
 
 my $relationships = Artist->meta->relationships;
 is(keys %$relationships, 1);

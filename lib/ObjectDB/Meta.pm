@@ -98,6 +98,41 @@ sub is_column {
     return exists $self->_columns->{$name};
 }
 
+sub is_primary_key {
+    my $self = shift;
+    my ($name) = @_;
+
+    return 0 unless $name;
+
+    my @rv = grep {$name eq $_} $self->primary_keys;
+    return @rv ? 1 : 0;
+}
+
+sub is_auto_increment {
+    my $self = shift;
+    my ($name) = @_;
+
+    return 0 unless $name;
+
+    return 0 unless $self->auto_increment;
+
+    return 0 unless $self->auto_increment eq $name;
+
+    return 1;
+}
+
+sub is_unique_key {
+    my $self = shift;
+    my ($name) = @_;
+
+    return 0 unless $name;
+
+    return 0 unless $self->unique_keys;
+
+    my @rv = grep {$name eq $_} $self->unique_keys;
+    return @rv ? 1 : 0;
+}
+
 sub columns {
     my $self = shift;
 
@@ -110,30 +145,12 @@ sub primary_keys {
     return @{$self->_primary_keys};
 }
 
-sub is_primary_key {
-    my $self = shift;
-    my ($name) = @_;
-
-    return 0 unless $name;
-
-    my @rv = grep {$name eq $_} $self->primary_keys;
-    return @rv ? 1 : 0;
-}
-
 sub unique_keys {
     my $self = shift;
 
+    return () unless defined $self->_unique_keys->[0];
+
     return @{$self->_unique_keys};
-}
-
-sub is_unique_key {
-    my $self = shift;
-    my ($name) = @_;
-
-    return 0 unless $name;
-
-    my @rv = grep {$name eq $_} $self->unique_keys;
-    return @rv ? 1 : 0;
 }
 
 sub add_column {

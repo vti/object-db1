@@ -10,6 +10,7 @@ __PACKAGE__->meta(
     columns        => [qw/ id name password /],
     primary_keys   => ['id'],
     auto_increment => 'id',
+    unique_keys    => 'name',
 
     relationships => {
         articles => {

@@ -13,6 +13,7 @@ use ObjectDB::Iterator;
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
 __PACKAGE__->attr([qw/ is_in_db is_modified /], default => 0);
+__PACKAGE__->attr([qw/ error /], default => sub { {} });
 
 sub new {
     my $class = shift;
@@ -569,6 +570,100 @@ sub set_related {
     }
 
     return $self;
+}
+
+sub is_valid {
+    my $self = shift;
+
+    my $errors = 0;
+    use Data::Dumper;
+    foreach my $col ($self->meta->columns) {
+        my $options = $self->meta->_columns->{$col};
+
+        $errors++ unless $self->_is_valid_null($col);
+
+        if (%$options) {
+            $errors++ unless $self->_is_valid_length($col);
+
+        }
+
+        $errors++ unless $self->_is_valid_unique($col);
+    }
+
+    return $errors ? 0 : 1;
+}
+
+sub _is_valid_unique {
+    my $self = shift;
+    my $col = shift;
+
+    return 1 unless $self->meta->is_unique_key($col);
+
+    my $clone = $self->new($col => $self->column($col));
+    return 1 unless $clone->find;
+
+    my @primary_keys = $self->meta->primary_keys;
+
+    foreach my $pk (@primary_keys) {
+        if (!defined $self->column($pk)
+            || !defined $clone->column($pk)
+            || $self->column($pk) ne $clone->column($pk))
+        {
+            $self->error->{$col} ||= [];
+            push @{$self->error->{$col}}, 'unique';
+
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+sub _is_valid_length {
+    my $self = shift;
+    my $col = shift;
+
+    if (my $length = $self->meta->_columns->{$col}->{length}) {
+        my $max_length;
+        my $min_length;
+        if (ref $length eq 'ARRAY') {
+            $min_length = $length->[0];
+            $max_length = $length->[1];
+        } else {
+            $min_length = 0;
+            $max_length = $length;
+        }
+
+        return 1 if $min_length == 0 && not defined $self->column($col);
+
+        if (   length $self->column($col) < $min_length
+            || length $self->column($col) > $max_length)
+        {
+            $self->error->{$col} ||= [];
+            push @{$self->error->{$col}}, 'length';
+
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+sub _is_valid_null {
+    my $self = shift;
+    my $col = shift;
+
+    return 1 if $self->meta->is_auto_increment($col);
+
+    return 1 if $self->meta->_columns->{$col}->{is_null};
+
+    unless (defined $self->column($col) && $self->column($col) ne '') {
+        $self->error->{$col} ||= [];
+        push @{$self->error->{$col}}, 'null';
+        return 0;
+    }
+
+    return 1;
 }
 
 sub to_hash {
