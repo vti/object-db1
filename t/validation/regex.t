@@ -16,10 +16,11 @@ __PACKAGE__->meta(
 1;
 
 package main;
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 my $model = Model->new(title => '1234');
 is($model->is_valid, 1);
 
 $model = Model->new(title => '1234a');
 is($model->is_valid, 0);
+is_deeply($model->error, {title => [qw/ regex /]});

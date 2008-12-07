@@ -635,12 +635,14 @@ sub _is_valid_unique {
 
 sub _is_valid_regex {
     my $self = shift;
-    my $col = shift;
+    my $col  = shift;
 
     if (my $regex = $self->meta->_columns->{$col}->{regex}) {
-        return 1 if $self->column($col) =~ qr/^$regex$/;
-
-        return 0;
+        unless ($self->column($col) =~ qr/^$regex$/) {
+            $self->error->{$col} ||= [];
+            push @{$self->error->{$col}}, 'regex';
+            return 0;
+        }
     }
 
     return 1;
