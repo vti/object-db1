@@ -598,7 +598,7 @@ sub is_valid {
 
         if (%$options) {
             $errors++ unless $self->_is_valid_length($col);
-
+            $errors++ unless $self->_is_valid_regex($col);
         }
 
         $errors++ unless $self->_is_valid_unique($col);
@@ -628,6 +628,19 @@ sub _is_valid_unique {
 
             return 0;
         }
+    }
+
+    return 1;
+}
+
+sub _is_valid_regex {
+    my $self = shift;
+    my $col = shift;
+
+    if (my $regex = $self->meta->_columns->{$col}->{regex}) {
+        return 1 if $self->column($col) =~ qr/^$regex$/;
+
+        return 0;
     }
 
     return 1;

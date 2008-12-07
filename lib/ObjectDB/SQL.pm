@@ -48,6 +48,8 @@ sub _where_to_string {
         while (my ($key, $value) = @{$where}[$count, $count + 1]) {
             last unless $key;
 
+            $value = '' unless defined $value;
+
             $string .= ' AND ' unless $count == 0;
             $string .= "$key = '$value'";
 

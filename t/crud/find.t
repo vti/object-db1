@@ -1,4 +1,4 @@
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 use lib 't/lib';
 
@@ -16,3 +16,6 @@ $u->find;
 is($u->column('id'), $u_->column('id'));
 is($u->column('name'), 'foo');
 is($u->column('password'), 'boo');
+
+$u = User->find(id => undef);
+ok(not defined $u);
