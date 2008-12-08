@@ -1,17 +1,15 @@
-use Test::More tests => 4;
+use Test::More tests => 2;
 
 use lib 't/lib';
 
-use User;
+use Unique;
 
-User->delete_objects;
+Unique->delete_objects;
 
-my $user = User->new(name => 'foo', password => 'boo');
-is($user->is_valid, 1);
+my $user = Unique->new(name => 'foo', password => 'boo');
 $user->create;
+ok(not defined $user->error);
 
-my $user2 = User->new(name => 'foo', password => 'boo');
-is($user2->is_valid, 0);
+my $user2 = Unique->new(name => 'foo', password => 'boo');
+$user2->create;
 is_deeply($user2->error, {name => [qw/ unique /]});
-
-is($user->is_valid, 1);

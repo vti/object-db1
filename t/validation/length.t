@@ -2,6 +2,7 @@ package Model;
 use strict;
 use lib 't/lib';
 use base 'DB';
+use ObjectDB::Validation;
 
 __PACKAGE__->meta(
     table   => 'table',
