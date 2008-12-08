@@ -24,4 +24,4 @@ is($model->is_valid, 1);
 
 $model = Model->new(title => '1234a');
 is($model->is_valid, 0);
-is_deeply($model->error, {title => [qw/ regex /]});
+is_deeply($model->errors, {title => [qw/ regex /]});

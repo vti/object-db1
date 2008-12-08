@@ -27,7 +27,7 @@ ok($model);
 
 is($model->is_valid, 0);
 is_deeply(
-    $model->error,
+    $model->errors,
     {   required  => [qw/ null /],
         required2 => [qw/ null /]
     }

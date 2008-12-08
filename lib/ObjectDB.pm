@@ -12,8 +12,7 @@ use ObjectDB::Iterator;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
-__PACKAGE__->attr([qw/ is_in_db is_modified /], default => 0);
-__PACKAGE__->attr([qw/ error /]);
+__PACKAGE__->attr([qw/ is_in_db is_modified not_found /], default => 0);
 
 sub new {
     my $class = shift;
@@ -139,6 +138,8 @@ sub find {
               || $self->meta->is_unique_key($name);
     }
 
+    return $self if $self->can('is_valid') && !$self->is_valid($self->columns);
+
     my $dbh = $class->init_db;
 
     my $sql = ObjectDB::SQL->new(command => 'select',
@@ -150,7 +151,10 @@ sub find {
 
     my $hash_ref = $dbh->selectrow_hashref("$sql");
 
-    return unless keys %$hash_ref;
+    unless (keys %$hash_ref) {
+        $self->not_found(1);
+        return $self;
+    }
 
     $self->init(%$hash_ref);
     $self->is_in_db(1);
@@ -175,6 +179,8 @@ sub update {
 
     die 'must be called on instance' unless ref $self;
 
+    return $self if $self->can('is_valid') && !$self->is_valid;
+
     my $dbh = $self->init_db;
 
     my %params = map { $_ => $self->column($_) } $self->meta->primary_keys;
@@ -197,6 +203,8 @@ sub update {
 sub delete {
     my $class = shift;
     my $self = ref $class ? $class : $class->new();
+
+    return $self if $self->can('is_valid') && !$self->is_valid($self->columns);
 
     my %params;
     if (ref $class) {
@@ -385,8 +393,8 @@ sub create_related {
           %{$relationship->{map_class}->meta->relationships->{$map_to}
               ->{map}};
 
-        my $object;
-        unless ($object = $relationship->{class}->find(@_)) {
+        my $object = $relationship->{class}->find(@_);
+        if ($object->not_found) {
             $object = $relationship->{class}->create(@_);
         }
 

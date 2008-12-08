@@ -25,7 +25,7 @@ use Test::More tests => 2;
 my $model = Model->new(title => '1234', content => '1234567', link => '12');
 is($model->is_valid, 0);
 is_deeply(
-    $model->error,
+    $model->errors,
     {   title   => [qw/ length /],
         content => [qw/ length /],
         link    => [qw/ length /]

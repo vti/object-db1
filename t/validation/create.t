@@ -8,8 +8,8 @@ Unique->delete_objects;
 
 my $user = Unique->new(name => 'foo', password => 'boo');
 $user->create;
-ok(not defined $user->error);
+ok(not defined $user->errors);
 
 my $user2 = Unique->new(name => 'foo', password => 'boo');
 $user2->create;
-is_deeply($user2->error, {name => [qw/ unique /]});
+is_deeply($user2->errors, {name => [qw/ unique /]});

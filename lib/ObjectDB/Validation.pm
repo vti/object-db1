@@ -5,13 +5,35 @@ use warnings;
 
 use base 'ObjectDB::MixIn';
 
-sub is_valid {
+__PACKAGE__->attr([qw/ _errors /]);
+
+sub errors {
     my $self = shift;
 
-    $self->error(undef);
+    return _errors($self) if @_ == 0;
+
+    my $col = shift;
+    if (@_ == 0) {
+        return $self->errors->{$col} if $self->errors;
+    } else {
+        my $error = shift;
+
+        _errors($self, {}) unless _errors($self);
+        $self->errors->{$col} ||= [];
+        push @{$self->errors->{$col}}, $error;
+    }
+}
+
+sub is_valid {
+    my $self = shift;
+    my $caller = (caller(1))[3] || '';
+
+    $caller =~ s/^.*::// if $caller;
+
+    _errors($self, undef);
 
     my $errors = 0;
-    foreach my $col ($self->meta->columns) {
+    foreach my $col (@_ ? @_ : $self->meta->columns) {
         my $options = $self->meta->_columns->{$col};
 
         $errors++ unless _is_valid_null($self, $col);
@@ -21,7 +43,9 @@ sub is_valid {
             $errors++ unless _is_valid_regex($self, $col);
         }
 
-        $errors++ if !$errors && !_is_valid_unique($self, $col);
+        if ($caller eq 'create' || $caller eq 'update') {
+            $errors++ if !$errors && !_is_valid_unique($self, $col);
+        }
     }
 
     return $errors ? 0 : 1;
@@ -34,7 +58,8 @@ sub _is_valid_unique {
     return 1 unless $self->meta->is_unique_key($col);
 
     my $clone = $self->new($col => $self->column($col))->find;
-    return 1 unless $clone;
+    $self->errors($clone->errors) if $clone->errors;
+    return 1 if $clone->not_found;
 
     my @primary_keys = $self->meta->primary_keys;
 
@@ -43,10 +68,7 @@ sub _is_valid_unique {
             || !defined $clone->column($pk)
             || $self->column($pk) ne $clone->column($pk))
         {
-            $self->error({}) unless $self->error;
-            $self->error->{$col} ||= [];
-            push @{$self->error->{$col}}, 'unique';
-
+            $self->errors($col => 'unique');
             return 0;
         }
     }
@@ -60,9 +82,7 @@ sub _is_valid_regex {
 
     if (my $regex = $self->meta->_columns->{$col}->{regex}) {
         unless ($self->column($col) =~ qr/^$regex$/) {
-            $self->error({}) unless $self->error;
-            $self->error->{$col} ||= [];
-            push @{$self->error->{$col}}, 'regex';
+            $self->errors($col => 'regex');
             return 0;
         }
     }
@@ -85,15 +105,17 @@ sub _is_valid_length {
             $max_length = $length;
         }
 
-        return 1 if $min_length == 0 && not defined $self->column($col);
+        if (not defined $self->column($col)) {
+            return 1 if $min_length == 0;
+
+            $self->errors($col => 'length');
+            return 0;
+        }
 
         if (   length $self->column($col) < $min_length
             || length $self->column($col) > $max_length)
         {
-            $self->error({}) unless $self->error;
-            $self->error->{$col} ||= [];
-            push @{$self->error->{$col}}, 'length';
-
+            $self->errors($col => 'length');
             return 0;
         }
     }
@@ -110,9 +132,7 @@ sub _is_valid_null {
     return 1 if $self->meta->_columns->{$col}->{is_null};
 
     unless (defined $self->column($col) && $self->column($col) ne '') {
-        $self->error({}) unless $self->error;
-        $self->error->{$col} ||= [];
-        push @{$self->error->{$col}}, 'null';
+        $self->errors($col => 'null');
         return 0;
     }
 

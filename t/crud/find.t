@@ -18,4 +18,4 @@ is($u->column('name'), 'foo');
 is($u->column('password'), 'boo');
 
 $u = User->find(id => undef);
-ok(not defined $u);
+is($u->not_found, 1);
