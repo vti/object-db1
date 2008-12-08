@@ -13,6 +13,8 @@ use ObjectDB::Iterator;
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
 __PACKAGE__->attr([qw/ is_in_db is_modified not_found /], default => 0);
+__PACKAGE__->attr('iterator');
+__PACKAGE__->attr('_relationships', default => sub { {} });
 
 sub new {
     my $class = shift;
@@ -274,7 +276,7 @@ sub find_objects {
 
         $sth->execute();
 
-        ObjectDB::Iterator->new(sth => $sth, class => $class);
+        ObjectDB::Iterator->new(sql => $sql, sth => $sth, class => $class);
     }
 }
 
@@ -416,6 +418,31 @@ sub create_related {
 
         return $relationship->{class}->create(@params, @_);
     }
+}
+
+sub related {
+    my $self = shift;
+    my ($name) = shift;
+
+    return unless $name;
+
+    if (my $rel = $self->_relationships->{$name}) {
+        if (ref $rel eq 'ARRAY') {
+            return @$rel if wantarray;
+        } else {
+            return $rel if $rel->isa('ObjectDB::Iterator');
+        }
+    }
+
+    my $objects;
+
+    if (wantarray) {
+        @$objects = $self->find_related($name, @_);
+    } else {
+        $objects = $self->find_related($name, @_);
+    }
+
+    return $self->_relationships->{$name} = $objects;
 }
 
 sub find_related {
