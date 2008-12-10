@@ -38,7 +38,7 @@ sub init {
         elsif (
             defined(my $default = $self->meta->_columns->{$key}->{default}))
         {
-            $self->{_columns}->{$key} = $default;
+            $self->{_columns}->{$key} = ref $default ? $default->() : $default;
         }
     }
 }
