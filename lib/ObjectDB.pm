@@ -30,17 +30,21 @@ sub init {
 
     $self->{_columns} ||= {};
 
-    my %values = @_;
+    my %values = ref $_[0] ? %{$_[0]} : @_;
     foreach my $key ($self->meta->columns) {
         if (exists $values{$key}) {
             $self->{_columns}->{$key} = $values{$key};
         }
-        elsif (
-            defined(my $default = $self->meta->_columns->{$key}->{default}))
+        elsif (!defined $self->column($key)
+            && defined(my $default = $self->meta->_columns->{$key}->{default})
+          )
         {
-            $self->{_columns}->{$key} = ref $default ? $default->() : $default;
+            $self->{_columns}->{$key} =
+              ref $default ? $default->() : $default;
         }
     }
+
+    return $self;
 }
 
 sub init_db {
@@ -134,20 +138,23 @@ sub find {
     my $class = shift;
     my $self = ref $class ? $class : $class->new(@_);
 
+    my @columns;
     foreach my $name ($self->columns) {
-        die "$name is not primary key or unique column"
-          unless $self->meta->is_primary_key($name)
+        push @columns, $name
+          if $self->meta->is_primary_key($name)
               || $self->meta->is_unique_key($name);
     }
 
-    return $self if $self->can('is_valid') && !$self->is_valid($self->columns);
+    return $self if $self->can('is_valid') && !$self->is_valid(@columns);
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(command => 'select',
-                                 source  => $self->meta->table,
-                                 columns => [$self->meta->columns],
-                                 where   => [%{$self->to_hash}]);
+    my $sql = ObjectDB::SQL->new(
+        command => 'select',
+        source  => $self->meta->table,
+        columns => [$self->meta->columns],
+        where   => [map { $_ => $self->column($_) } @columns]
+    );
 
     warn $sql if DEBUG;
 
