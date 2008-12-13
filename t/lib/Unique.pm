@@ -9,7 +9,7 @@ use ObjectDB::Validation;
 
 __PACKAGE__->meta(
     table          => 'user',
-    columns        => [qw/ id password /, name => {length => [3, 8]}],
+    columns        => [qw/ id name password /],
     primary_keys   => ['id'],
     auto_increment => 'id',
     unique_keys    => 'name'

@@ -5,7 +5,7 @@ use lib 't/lib';
 use Unique;
 
 my $u = Unique->find(name => '12');
-is_deeply($u->errors, {name => [qw/ length /]});
+ok(not defined $u->errors);
 
 Unique->delete_objects;
 

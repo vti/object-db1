@@ -32,4 +32,6 @@ __PACKAGE__->meta(
     }
 );
 
+sub tags { shift->related('tags') }
+
 1;

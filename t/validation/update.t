@@ -18,4 +18,4 @@ is_deeply($u->errors, {name => [qw/ unique /]});
 
 $u->column(name => undef);
 $u->update;
-is_deeply($u->errors, {name => [qw/ null length /]});
+is_deeply($u->errors, {name => [qw/ null /]});

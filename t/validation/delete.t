@@ -11,8 +11,8 @@ ok(not defined $u->errors);
 
 $u->column(name => undef);
 $u->delete;
-is_deeply($u->errors, {name => [qw/ null length /]});
+is_deeply($u->errors, {name => [qw/ null /]});
 
 $u->column(name => 'a');
 $u->delete;
-is_deeply($u->errors, {name => [qw/ length /]});
+ok(not defined $u->errors);
