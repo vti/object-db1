@@ -433,23 +433,29 @@ sub related {
 
     return unless $name;
 
+    my $wantarray = wantarray;
     if (my $rel = $self->_relationships->{$name}) {
         if (ref $rel eq 'ARRAY') {
-            return @$rel if wantarray;
-        } else {
-            return $rel if $rel->isa('ObjectDB::Iterator');
+            return @$rel if $wantarray;
+        }
+
+        if ($rel->isa('ObjectDB::Iterator')) {
+            return $rel unless $wantarray;
         }
     }
 
     my $objects;
 
-    if (wantarray) {
+    if ($wantarray) {
+        $objects = [];
         @$objects = $self->find_related($name, @_);
     } else {
         $objects = $self->find_related($name, @_);
     }
 
-    return $self->_relationships->{$name} = $objects;
+    $self->_relationships->{$name} = $objects;
+
+    return $wantarray ? @$objects : $objects;
 }
 
 sub find_related {
