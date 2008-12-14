@@ -24,5 +24,4 @@ $d = Default->new(title => 'foo');
 is($d->column('title'), 'foo');
 
 $d = Default->new();
-diag $d->column('addtime');
 ok($d->column('addtime') >= time);
