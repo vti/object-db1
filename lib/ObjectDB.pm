@@ -21,6 +21,7 @@ sub new {
     my $self = $class->SUPER::new();
 
     $self->init(@_);
+    $self->is_modified(0);
 
     return $self;
 }
@@ -43,6 +44,8 @@ sub init {
               ref $default ? $default->() : $default;
         }
     }
+
+    $self->is_modified(1);
 
     return $self;
 }

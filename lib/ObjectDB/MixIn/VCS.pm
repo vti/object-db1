@@ -19,11 +19,11 @@ sub commit {
         return $self;
     }
 
-    return unless $self->is_modified;
+    return $self unless $self->is_modified;
 
     my $data = _diff($self);
 
-    return unless defined $data;
+    return $self unless defined $data;
 
     $self->create_related('diffs', %$data);
 
