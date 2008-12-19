@@ -5,6 +5,8 @@ use warnings;
 
 use base 'ObjectDB::MixIn';
 
+use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
+
 __PACKAGE__->attr([qw/ _errors /]);
 
 sub errors {
@@ -62,6 +64,7 @@ sub _is_valid_unique {
             || $self->column($pk) ne $clone->column($pk))
         {
             $self->errors($col => 'unique');
+            warn "$col must be unique" if DEBUG;
             return 0;
         }
     }
@@ -79,6 +82,7 @@ sub _is_valid_null {
 
     unless (defined $self->column($col) && $self->column($col) ne '') {
         $self->errors($col => 'null');
+        warn "$col is required" if DEBUG;
         return 0;
     }
 
