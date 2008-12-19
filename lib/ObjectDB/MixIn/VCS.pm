@@ -9,13 +9,14 @@ use Text::Diff();
 use Text::Patch();
 
 sub commit {
-    my $self = shift;
+    my $class = shift;
+    my $self = ref $class ? $class : $class->new(@_);
 
     unless ($self->is_in_db) {
         $self->column(addtime => time) unless $self->column('addtime');
         $self->column(revision => 1);
         $self->create();
-        return;
+        return $self;
     }
 
     return unless $self->is_modified;
@@ -29,6 +30,8 @@ sub commit {
     $self->column(addtime => time) unless $self->column('addtime');
     $self->column(revision => $self->column('revision') + 1);
     $self->update();
+
+    return $self;
 }
 
 sub find_revision {
