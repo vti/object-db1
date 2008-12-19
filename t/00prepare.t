@@ -94,6 +94,7 @@ DROP TABLE IF EXISTS `wiki`;
 $dbh->do(<<"");
 CREATE TABLE `wiki` (
  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+ `user_id` INTEGER,
  `title` varchar(40) default '',
  `addtime` INTEGER,
  `revision` INTEGER DEFAULT 1
@@ -106,6 +107,7 @@ $dbh->do(<<"");
 CREATE TABLE `wiki_diff` (
  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `wiki_id` INTEGER,
+ `user_id` INTEGER,
  `title` varchar(40) default '',
  `addtime` INTEGER,
  `revision` INTEGER DEFAULT 1

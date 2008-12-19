@@ -9,7 +9,7 @@ use ObjectDB::MixIn::VCS;
 
 __PACKAGE__->meta(
     table          => 'wiki',
-    columns        => [qw/ id title addtime revision /],
+    columns        => [qw/ id title addtime revision /, user_id => { no_vcs => 1 }],
     primary_keys   => ['id'],
     auto_increment => 'id',
 

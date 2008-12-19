@@ -7,7 +7,7 @@ use base 'DB';
 
 __PACKAGE__->meta(
     table          => 'wiki_diff',
-    columns        => [qw/ id wiki_id title addtime revision /],
+    columns        => [qw/ id wiki_id user_id title addtime revision /],
     primary_keys   => ['id'],
     auto_increment => 'id',
 

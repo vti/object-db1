@@ -116,15 +116,31 @@ sub _diff {
 
     return unless $has_changed_columns;
 
+    foreach my $column (_not_versioned_columns($self)) {
+        $data->{$column} = $initial->column($column);
+    }
+
     return $data;
 }
 
 sub _versioned_columns {
     my $self = shift;
 
-    return
-      grep { !$self->meta->is_primary_key($_) && $_ !~ m/(?:addtime|revision)/ }
-      $self->meta->relationships->{diffs}->{class}->meta->columns;
+    return grep {
+            !$self->meta->is_primary_key($_)
+          && $_ !~ m/(?:addtime|revision)/
+          && !$self->meta->_columns->{$_}->{no_vcs}
+    } $self->meta->relationships->{diffs}->{class}->meta->columns;
+}
+
+sub _not_versioned_columns {
+    my $self = shift;
+
+    return grep {
+            !$self->meta->is_primary_key($_)
+          && $_ !~ m/(?:addtime|revision)/
+          && $self->meta->_columns->{$_}->{no_vcs}
+    } $self->meta->relationships->{diffs}->{class}->meta->columns;
 }
 
 1;
