@@ -17,10 +17,10 @@ Article->create(title => 'mega');
 
 $u->create_related('articles', title => 'boo');
 $u->create_related('articles', title => 'foo');
-my @articles = $u->find_related('articles');
+my @articles = $u->find_related('articles', order_by => 'id DESC');
 is(@articles, 2);
 is($u->count_related('articles'), 2);
-is($articles[0]->column('title'), 'boo');
+is($articles[0]->column('title'), 'foo');
 
 @articles = $u->find_related('articles', where => [title => 'foo']);
 is($u->count_related('articles', where => [title => 'foo']), 1);
