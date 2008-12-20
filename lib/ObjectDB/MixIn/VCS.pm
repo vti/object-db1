@@ -47,6 +47,7 @@ sub load_revision {
     my @diffs = $self->find_related('diffs', order_by => 'revision DESC');
 
     my ($src_column, $diff_column);
+    my $last_diff;
     foreach my $diff (@diffs) {
         foreach my $column (_versioned_columns($self)) {
             $src_column  = $self->column($column);
@@ -64,7 +65,14 @@ sub load_revision {
             }
         }
 
-        last if $diff->column('revision') == $revision;
+        if ($diff->column('revision') == $revision) {
+            $last_diff = $diff;
+            last 
+        }
+    }
+
+    foreach my $column (_not_versioned_columns($self)) {
+        $self->column($column => $last_diff->column($column));
     }
 
     return $self;
