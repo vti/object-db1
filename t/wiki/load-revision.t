@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More 'tests' => 6;
+use Test::More 'tests' => 7;
 
 use lib 't/lib';
 
@@ -19,6 +19,7 @@ is($wiki->column('revision'), 2);
 $wiki = Wiki->new(id => $wiki->column('id'));
 $wiki->find;
 $wiki->load_revision(1);
+is($wiki->column('revision'), 1);
 is($wiki->column('title'), 'Wow');
 is($wiki->column('user_id'), 1);
 

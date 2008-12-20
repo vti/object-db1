@@ -75,6 +75,8 @@ sub load_revision {
         $self->column($column => $last_diff->column($column));
     }
 
+    $self->column(revision => $revision);
+
     return $self;
 }
 
