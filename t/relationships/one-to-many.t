@@ -15,7 +15,7 @@ is(@articles, 0);
 
 Article->create(title => 'mega');
 
-$u->create_related('articles', title => 'boo');
+$u->create_related('articles', Article->new(title => 'boo'));
 $u->create_related('articles', title => 'foo');
 my @articles = $u->find_related('articles', order_by => 'id DESC');
 is(@articles, 2);

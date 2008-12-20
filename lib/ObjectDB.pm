@@ -105,6 +105,20 @@ sub column {
     return $self;
 }
 
+sub clone {
+    my $self = shift;
+
+    my %data;
+    foreach my $column ($self->meta->columns) {
+        next
+          if $self->meta->is_primary_key($column)
+              || $self->meta->is_unique_key($column);
+        $data{$column} = $self->column($column);
+    }
+
+    return (ref $self)->new(%data);
+}
+
 sub create {
     my $class = shift;
     my $self = ref $class ? $class : $class->new(@_);
@@ -429,7 +443,11 @@ sub create_related {
             push @params, ($column => $value);
         }
 
-        return $relationship->{class}->create(@params, @_);
+        if (@_ == 1 && ref $_[0]) {
+            return $relationship->{class}->create(%{$_[0]->to_hash}, @params);
+        } else {
+            return $relationship->{class}->create(@params, @_);
+        }
     }
 }
 

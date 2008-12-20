@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More 'tests' => 4;
+use Test::More 'tests' => 5;
 
 use lib 't/lib';
 
@@ -20,6 +20,6 @@ $wiki->commit;
 
 is($wiki->column('title'), 'haha');
 
-$wiki->rollback;
+ok($wiki->rollback);
 is($wiki->column('revision'), 3);
 is($wiki->column('title'),    'bu');

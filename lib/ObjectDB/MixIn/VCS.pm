@@ -88,6 +88,7 @@ sub rollback {
     return if $current_rev == 1;
 
     return unless $self->load_revision($current_rev - 1);
+    $self->column(revision => $current_rev);
     $self->commit;
 }
 
