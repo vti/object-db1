@@ -34,7 +34,7 @@ sub init {
     my %values = ref $_[0] ? %{$_[0]} : @_;
     foreach my $key ($self->meta->columns) {
         if (exists $values{$key}) {
-            $self->{_columns}->{$key} = $values{$key};
+            $self->{_columns}->{$key} = delete $values{$key};
         }
         elsif (!defined $self->column($key)
             && defined(my $default = $self->meta->_columns->{$key}->{default})
@@ -42,6 +42,14 @@ sub init {
         {
             $self->{_columns}->{$key} =
               ref $default ? $default->() : $default;
+        }
+    }
+
+    if ($self->meta->relationships) {
+        foreach my $rel (%{$self->meta->relationships}) {
+            if (exists $values{$rel}) {
+                $self->_relationships->{$rel} = $values{$rel};
+            }
         }
     }
 
@@ -147,6 +155,22 @@ sub create {
 
     $self->is_in_db(1);
     $self->is_modified(0);
+
+    if ($self->meta->relationships) {
+        foreach my $rel (keys %{$self->meta->relationships}) {
+            if (my $rel_values = $self->_relationships->{$rel}) {
+                if ($self->meta->relationships->{$rel}->{type} eq 'many to many') {
+                    use Data::Dumper;
+                    warn Dumper $rel_values;
+                    $self->set_related($rel, $rel_values);
+                } else {
+                    die 'not supported yet!';
+                }
+            }
+            #warn $rel;
+            #warn $rel if $self->column($rel);
+        }
+    }
 
     return $self;
 }
