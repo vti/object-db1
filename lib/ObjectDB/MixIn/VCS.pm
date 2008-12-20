@@ -34,7 +34,7 @@ sub commit {
     return $self;
 }
 
-sub find_revision {
+sub load_revision {
     my $self = shift;
     my ($revision) = @_;
 
@@ -77,7 +77,7 @@ sub rollback {
 
     return if $current_rev == 1;
 
-    $self->find_revision($current_rev - 1);
+    return unless $self->load_revision($current_rev - 1);
     $self->commit;
 }
 

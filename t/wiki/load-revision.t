@@ -17,7 +17,7 @@ is($wiki->column('revision'), 2);
 
 $wiki = Wiki->new(id => $wiki->column('id'));
 $wiki->find;
-$wiki->find_revision(1);
+$wiki->load_revision(1);
 is($wiki->column('title'), 'Wow');
 
 $wiki = Wiki->new(id => $wiki->column('id'));
@@ -27,5 +27,5 @@ $wiki->commit;
 is($wiki->column('revision'), 3);
 is($wiki->column('title'), 'Woo');
 
-$wiki->find_revision(2);
+$wiki->load_revision(2);
 is($wiki->column('title'), 'Waw');
