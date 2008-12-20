@@ -101,7 +101,7 @@ sub column {
     $self->{_columns} ||= {};
 
     if (@_ == 1) {
-        return $self->{_columns}->{$_[0]};
+        return defined $_[0] ? $self->{_columns}->{$_[0]} : undef;
     } elsif (@_ == 2) {
         if (defined $self->{_columns}->{$_[0]} && defined $_[1]) {
             $self->is_modified(1) if $self->{_columns}->{$_[0]} ne $_[1];
@@ -160,15 +160,11 @@ sub create {
         foreach my $rel (keys %{$self->meta->relationships}) {
             if (my $rel_values = $self->_relationships->{$rel}) {
                 if ($self->meta->relationships->{$rel}->{type} eq 'many to many') {
-                    use Data::Dumper;
-                    warn Dumper $rel_values;
                     $self->set_related($rel, $rel_values);
                 } else {
                     die 'not supported yet!';
                 }
             }
-            #warn $rel;
-            #warn $rel if $self->column($rel);
         }
     }
 

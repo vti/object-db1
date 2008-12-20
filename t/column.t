@@ -1,4 +1,4 @@
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 use lib 't/lib';
 
@@ -8,6 +8,7 @@ my $u = User->new();
 
 ok($u);
 
+ok(not defined $u->column(undef));
 ok(not defined $u->column('id'));
 
 $u->column(id => 'boo');
