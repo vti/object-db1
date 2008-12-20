@@ -169,6 +169,7 @@ sub find {
     }
 
     $self->init(%$hash_ref);
+    $self->is_modified(0);
     $self->is_in_db(1);
 
     return $self;
@@ -190,6 +191,8 @@ sub update {
     my $self = shift;
 
     die 'must be called on instance' unless ref $self;
+
+    return $self unless $self->is_modified;
 
     return $self if $self->can('is_valid') && !$self->is_valid;
 

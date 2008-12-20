@@ -113,3 +113,17 @@ CREATE TABLE `wiki_diff` (
  `revision` INTEGER DEFAULT 1
 );
 
+$dbh->do(<<"");
+DROP TABLE IF EXISTS `wiki_simple`;
+
+$dbh->do(<<"");
+CREATE TABLE `wiki_simple` (
+ `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+ `parent_id` INTEGER,
+ `addtime` INTEGER NOT NULL,
+ `user_id` INTEGER NOT NULL,
+ `revision` INTEGER NOT NULL DEFAULT 1,
+ `title` varchar(40) default '',
+ `content` varchar(40) default ''
+);
+
