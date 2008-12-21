@@ -299,11 +299,20 @@ sub find_objects {
 
     my $single = delete $params{single};
 
+    my @columns = delete $params{columns};
+    if (@columns) {
+        @columns = @{$columns[0]} if ref $columns[0];
+
+        unshift @columns, $class->meta->primary_keys;
+    } else {
+        @columns = $class->meta->columns;
+    }
+
     my $dbh = $class->init_db;
 
     my $sql = ObjectDB::SQL->new(command => 'select',
                                  source  => $class->meta->table,
-                                 columns => [$class->meta->columns],
+                                 columns => \@columns,
                                  %params);
 
     if ($single) {
