@@ -51,7 +51,7 @@ sub _where_to_string {
             $value = '' unless defined $value;
 
             $string .= ' AND ' unless $count == 0;
-            $string .= "$key = '$value'";
+            $string .= "`$key` = '$value'";
 
             $count += 2;
         }
@@ -59,7 +59,7 @@ sub _where_to_string {
         $string .= $where;
     }
 
-    return $string;
+    return "($string)";
 }
 
 sub to_string {

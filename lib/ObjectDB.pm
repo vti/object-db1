@@ -163,7 +163,7 @@ sub create {
     my $rv = $sth->execute(@values);
 
     return unless $rv;
-    
+
     if (my $auto_increment = $self->meta->auto_increment) {
         $self->column($auto_increment => $dbh->last_insert_id(undef, undef,
                 $self->meta->table, $auto_increment));
@@ -192,14 +192,13 @@ sub find {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(
-        command => 'select',
-        source  => $self->meta->table,
-        columns => [$self->meta->columns],
-        where   => [map { $_ => $self->column($_) } @columns]
-    );
+    my $sql = ObjectDB::SQL->new;
 
-    warn $sql if DEBUG;
+    $sql->command('select')->source($self->meta->table)
+      ->columns($self->meta->columns)
+      ->where([map { $_ => $self->column($_) } @columns]);
+
+    warn "$sql" if DEBUG;
 
     my $hash_ref = $dbh->selectrow_hashref("$sql");
 
@@ -300,25 +299,57 @@ sub find_objects {
     my $single = delete $params{single};
 
     my @columns;
-    if (my $columns = delete $params{columns}) {
-        @columns = ref $columns ? @$columns : ($columns);
+    if (my $cols = delete $params{columns}) {
+        @columns = ref $cols ? @$cols : ($cols);
 
         unshift @columns, $class->meta->primary_keys;
     } else {
         @columns = $class->meta->columns;
     }
 
-    my $dbh = $class->init_db;
+    my $sql = ObjectDB::SQL->new;
 
-    my $sql = ObjectDB::SQL->new(command => 'select',
-                                 source  => $class->meta->table,
-                                 columns => \@columns,
-                                 %params);
+    $sql->command('select', %params)->source($class->meta->table)
+      ->columns(@columns);
+
+    if (my $sources = delete $params{source}) {
+        foreach my $source (@$sources) {
+            $sql->source($source);
+        }
+    }
+
+    my $with;
+    if ($with = delete $params{with}) {
+        my $relationship = $class->_load_relationship($with);
+
+        if ($relationship->{type} eq 'many to one') {
+            my $table = $class->meta->table;
+            my $rel_table = $relationship->{class}->meta->table;
+            my ($from, $to) = %{$relationship->{map}};
+
+            $sql->source(
+                {   name       => $rel_table,
+                    join       => 'left',
+                    constraint => "$rel_table.$to=$table.$from"
+                }
+            );
+
+            #$sql->columns($relationship->{class}->meta->columns);
+        } else {
+            die $relationship->{type} . ' is not supported yet';
+        }
+    }
+
+    foreach my $key (keys %params) {
+        $sql->$key($params{$key});
+    }
+
+    my $dbh = $class->init_db;
 
     if ($single) {
         $sql->limit(1);
 
-        warn $sql if DEBUG;
+        warn "$sql" if DEBUG;
 
         my $sth = $dbh->prepare("$sql");
 
@@ -330,11 +361,31 @@ sub find_objects {
         warn $sql if DEBUG;
 
         my $sth = $dbh->prepare("$sql");
+        $sth->execute;
 
-        my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
-        return () unless @$results;
+        my $results = $sth->fetchall_arrayref;
+        return () unless $results && @$results;
 
-        return map { $class->new(%{$_}) } @$results;
+        my @objects;
+        foreach my $row (@$results) {
+            my %values = map { $_ => shift @$row } @columns;
+
+            my $object = $class->new(%values);
+
+            if ($with) {
+                my $relationship = $object->meta->relationships->{$with};
+
+                if ($relationship->{type} eq 'many to one') {
+                    %values = map { $_ => shift @$row } $relationship->{class}->meta->columns;
+                    $object->_relationships->{$with} = $relationship->{class}->new(%values);
+                } else {
+                    die 'not supported';
+                }
+            }
+
+            push @objects, $object;
+        }
+        return @objects;
     } else {
         warn $sql if DEBUG;
 
@@ -381,13 +432,22 @@ sub delete_objects {
 
 sub count_objects {
     my $class = shift;
+    my %params = @_;
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(command => 'select',
-                                 columns => [\'COUNT(*) AS count'],
-                                 source  => $class->meta->table,
-                                 @_);
+    my $sql = ObjectDB::SQL->new;
+
+    $sql->command('select')->source($class->meta->table)
+      ->columns(\'COUNT(*) AS count');
+
+    if (my $sources = delete $params{source}) {
+        $sql->source($_) foreach @$sources;
+    }
+
+    foreach my $key (keys %params) {
+        $sql->$key($params{$key});
+    }
 
     warn $sql if DEBUG;
 
@@ -416,7 +476,7 @@ sub _load_relationship {
     }
 
     my $class;
-    
+
     if ($relationship->{type} eq 'many to many') {
         $class = $relationship->{map_class};
         unless ($class->can('isa')) {
@@ -439,6 +499,10 @@ sub _load_relationship {
 sub create_related {
     my $self = shift;
     my ($name) = shift;
+
+    unless ($self->is_in_db) {
+        die "can't create related objects when object is not in db";
+    }
 
     my $relationship = $self->_load_relationship($name);
 
@@ -504,10 +568,10 @@ sub related {
     if (my $rel = $self->_relationships->{$name}) {
         if (ref $rel eq 'ARRAY') {
             return @$rel if $wantarray;
-        }
-
-        if ($rel->isa('ObjectDB::Iterator')) {
+        } elsif ($rel->isa('ObjectDB::Iterator')) {
             return $rel unless $wantarray;
+        } elsif (ref $rel) {
+            return $rel;
         }
     }
 
@@ -550,7 +614,7 @@ sub find_related {
 
         my $table = $relationship->{class}->meta->table;
         my $map_table = $relationship->{map_class}->meta->table;
-        $params{source} = [ $table ,
+        $params{source} = [
             {   name     => $map_table,
                 join       => 'left',
                 constraint => "$table.$to=$map_table.$from"
@@ -602,7 +666,7 @@ sub count_related {
 
         my $table = $relationship->{class}->meta->table;
         my $map_table = $relationship->{map_class}->meta->table;
-        $params{source} = [ $table ,
+        $params{source} = [
             {   name     => $map_table,
                 join       => 'left',
                 constraint => "$table.$to=$map_table.$from"
@@ -700,7 +764,7 @@ sub set_related {
     }
 
     $self->delete_related($name);
-    
+
     foreach my $object (@$objects) {
         $self->create_related($name, %$object);
     }

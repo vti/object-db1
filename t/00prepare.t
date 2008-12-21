@@ -12,7 +12,8 @@ $dbh->do(<<"");
 CREATE TABLE `article` (
  `id` INTEGER PRIMARY KEY,
  `user_id` INTEGER,
- `title` varchar(40) default ''
+ `title` varchar(40) default '',
+ `name` varchar(40) default ''
 );
 
 $dbh->do(<<"");
