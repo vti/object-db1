@@ -127,6 +127,22 @@ sub clone {
     return (ref $self)->new(%data);
 }
 
+sub _process_related {
+    my $self = shift;
+
+    if ($self->meta->relationships) {
+        foreach my $rel (keys %{$self->meta->relationships}) {
+            if (my $rel_values = $self->_relationships->{$rel}) {
+                if ($self->meta->relationships->{$rel}->{type} eq 'many to many') {
+                    $self->set_related($rel, $rel_values);
+                } else {
+                    die 'not supported yet!';
+                }
+            }
+        }
+    }
+}
+
 sub create {
     my $class = shift;
     my $self = ref $class ? $class : $class->new(@_);
@@ -156,17 +172,7 @@ sub create {
     $self->is_in_db(1);
     $self->is_modified(0);
 
-    if ($self->meta->relationships) {
-        foreach my $rel (keys %{$self->meta->relationships}) {
-            if (my $rel_values = $self->_relationships->{$rel}) {
-                if ($self->meta->relationships->{$rel}->{type} eq 'many to many') {
-                    $self->set_related($rel, $rel_values);
-                } else {
-                    die 'not supported yet!';
-                }
-            }
-        }
-    }
+    $self->_process_related;
 
     return $self;
 }
@@ -246,7 +252,11 @@ sub update {
     my @values = map { $self->column($_) } @columns;
 
     my $sth = $dbh->prepare("$sql");
-    return $sth->execute(@values);
+    my $rv = $sth->execute(@values);
+
+    $self->_process_related;
+
+    return $rv;
 }
 
 sub delete {
@@ -664,10 +674,17 @@ sub set_related {
     die "only 'many to many' is supported"
       unless $relationship->{type} eq 'many to many';
 
-    my $objects =
-        ref $_[0] eq 'ARRAY' ? $_[0] 
-      : ref $_[0] eq 'HASH'  ? [$_[0]]
-      :                        [{@_}];
+    my $objects;
+
+    if (ref $_[0] eq 'ARRAY') {
+        $objects = $_[0];
+    } elsif (ref $_[0] eq 'HASH') {
+        $objects = [$_[0]];
+    } elsif (@_ % 2 == 0) {
+        $objects = [{@_}];
+    } else {
+        die 'wrong set_related params';
+    }
 
     $self->delete_related($name);
     
