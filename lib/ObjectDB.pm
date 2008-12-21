@@ -299,9 +299,9 @@ sub find_objects {
 
     my $single = delete $params{single};
 
-    my @columns = delete $params{columns};
-    if (@columns) {
-        @columns = @{$columns[0]} if ref $columns[0];
+    my @columns;
+    if (my $columns = delete $params{columns}) {
+        @columns = ref $columns ? @$columns : ($columns);
 
         unshift @columns, $class->meta->primary_keys;
     } else {
