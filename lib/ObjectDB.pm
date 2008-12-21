@@ -419,7 +419,9 @@ sub _load_relationship {
     
     if ($relationship->{type} eq 'many to many') {
         $class = $relationship->{map_class};
-        eval "require $class;";
+        unless ($class->can('isa')) {
+            eval "require $class;";
+        }
 
         $relationship->{class} =
           $class->meta->relationships->{$relationship->{map_to}}->{class};
@@ -427,7 +429,9 @@ sub _load_relationship {
 
     $class = $relationship->{class};
 
-    eval "require $class;";
+    unless ($class->can('isa')) {
+        eval "require $class;";
+    }
 
     return $relationship;
 }
