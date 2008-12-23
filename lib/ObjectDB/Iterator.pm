@@ -27,10 +27,15 @@ sub next {
     if ($self->with) {
         my $relationship = $object->meta->relationships->{$self->with};
 
-        if ($relationship->{type} eq 'many to one') {
-            %values = map { $_ => shift @row } $relationship->{class}->meta->columns;
-            $object->_relationships->{$self->with} = $relationship->{class}->new(%values);
-        } else {
+        if (   $relationship->{type} eq 'many to one'
+            || $relationship->{type} eq 'one to one')
+        {
+            %values =
+              map { $_ => shift @row } $relationship->{class}->meta->columns;
+            $object->_relationships->{$self->with} =
+              $relationship->{class}->new(%values);
+        }
+        else {
             die 'not supported';
         }
     }

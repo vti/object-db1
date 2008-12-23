@@ -322,7 +322,8 @@ sub find_objects {
     if ($with = delete $params{with}) {
         my $relationship = $class->_load_relationship($with);
 
-        if ($relationship->{type} eq 'many to one') {
+        if ($relationship->{type} eq 'many to one' || $relationship->{type} eq
+            'one to one') {
             my $table = $class->meta->table;
             my $rel_table = $relationship->{class}->meta->table;
             my ($from, $to) = %{$relationship->{map}};
@@ -366,7 +367,8 @@ sub find_objects {
             if ($with) {
                 my $relationship = $object->meta->relationships->{$with};
 
-                if ($relationship->{type} eq 'many to one') {
+                if ($relationship->{type} eq 'many to one' ||
+                    $relationship->{type} eq 'one to one') {
                     %values = map { $_ => shift @$row } $relationship->{class}->meta->columns;
                     $object->_relationships->{$with} = $relationship->{class}->new(%values);
                 } else {
@@ -498,10 +500,11 @@ sub create_related {
     my $relationship = $self->_load_relationship($name);
 
     unless ($relationship->{type} eq 'one to many'
-        || $relationship->{type} eq 'many to many')
+        || $relationship->{type} eq 'many to many'
+        || $relationship->{type} eq 'one to one')
     {
         die
-          "can be called only on 'one to many' or 'many to many' relationships";
+          "can be called only on 'one to many', 'one to one' or 'many to many' relationships";
     }
 
     if ($relationship->{type} eq 'many to many') {
