@@ -346,25 +346,16 @@ sub find_objects {
 
     my $dbh = $class->init_db;
 
-    if ($single) {
-        $sql->limit(1);
+    if ($single || wantarray) {
+        $sql->limit(1) if $single;
 
-        warn "$sql" if DEBUG;
-
-        my $sth = $dbh->prepare("$sql");
-
-        my $results = $dbh->selectall_arrayref("$sql", {Slice => {}});
-        return unless @$results;
-
-        return $class->new(%{$results->[0]});
-    } elsif (wantarray) {
         warn $sql if DEBUG;
 
         my $sth = $dbh->prepare("$sql");
         $sth->execute;
 
         my $results = $sth->fetchall_arrayref;
-        return () unless $results && @$results;
+        return unless $results && @$results;
 
         my @objects;
         foreach my $row (@$results) {
@@ -385,7 +376,7 @@ sub find_objects {
 
             push @objects, $object;
         }
-        return @objects;
+        return $single ? $objects[0] : @objects;
     } else {
         warn $sql if DEBUG;
 

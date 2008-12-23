@@ -1,4 +1,4 @@
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 use lib 't/lib';
 
@@ -24,4 +24,7 @@ my $article = $articles->next;
 is($article->related('user')->column('name'), 'foo');
 
 $article = $articles->next;
+is($article->related('user')->column('name'), 'foo');
+
+$article = Article->find_objects(with => 'user', single => 1);
 is($article->related('user')->column('name'), 'foo');
