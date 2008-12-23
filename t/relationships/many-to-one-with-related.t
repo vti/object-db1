@@ -17,6 +17,7 @@ is(@articles, 2);
 is($articles[0]->related('user')->column('name'), 'foo');
 is($articles[1]->related('user')->column('name'), 'foo');
 
+
 my $articles = Article->find_objects(with => 'user');
 ok($articles->isa('ObjectDB::Iterator'));
 
@@ -25,6 +26,7 @@ is($article->related('user')->column('name'), 'foo');
 
 $article = $articles->next;
 is($article->related('user')->column('name'), 'foo');
+
 
 $article = Article->find_objects(with => 'user', single => 1);
 is($article->related('user')->column('name'), 'foo');
