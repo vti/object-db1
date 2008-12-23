@@ -368,7 +368,7 @@ sub find_objects {
 
         my @objects;
         foreach my $row (@$results) {
-            my %values = map { $_ => shift @$row } @columns;
+            my %values = map { $_ => shift @$row } $sql->columns;
 
             my $object = $class->new(%values);
 
@@ -393,7 +393,7 @@ sub find_objects {
 
         $sth->execute();
 
-        ObjectDB::Iterator->new(sql => $sql, sth => $sth, class => $class);
+        ObjectDB::Iterator->new(with => $with, sth => $sth, class => $class);
     }
 }
 

@@ -24,12 +24,15 @@ sub source {
 sub columns {
     my $self = shift;
 
-    return unless @_;
-    die 'first define source' unless @{$self->_sources};
+    if (@_) {
+        die 'first define source' unless @{$self->_sources};
 
-    $self->_sources->[-1]->{columns} = ref $_[0] eq 'ARRAY' ? $_[0] : [@_];
+        $self->_sources->[-1]->{columns} = ref $_[0] eq 'ARRAY' ? $_[0] : [@_];
 
-    return $self;
+        return $self;
+    }
+
+    return @{$self->_sources->[0]->{columns}};
 }
 
 sub to_string {
