@@ -11,7 +11,7 @@ UserAdmin->delete_objects;
 my $admin = Admin->create(name => 'root', password => 'foo');
 ok($admin);
 
-UserAdmin->create(user_id => $admin->column('id'), beard => 1);
+$admin->create_related('user_admin', beard => 1);
 is($admin->column('name'), 'root');
 is($admin->column('password'), 'foo');
 
