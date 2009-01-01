@@ -147,6 +147,8 @@ sub create {
     my $class = shift;
     my $self = ref $class ? $class : $class->new(@_);
 
+    return $self if $self->is_in_db;
+
     return $self if $self->can('is_valid') && !$self->is_valid;
 
     my $dbh = $self->init_db;

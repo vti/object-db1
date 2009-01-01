@@ -4,28 +4,29 @@ use lib 't/lib';
 
 use User;
 
-my $u = User->new();
-$u->create();
+my $u = User->new;
+$u->create;
 ok($u);
 ok($u->column('id'));
 ok(not defined $u->column('name'));
 ok(not defined $u->column('password'));
 
 $u = User->new(name => 'foo');
-$u->create();
+$u->create;
 ok($u);
 ok($u->column('id'));
 is($u->column('name'), 'foo');
 ok(not defined $u->column('password'));
 
 $u = User->new(name => 'foo', password => 'bar');
-$u->create();
+$u->create;
 ok($u);
 ok($u->column('id'));
 is($u->column('name'), 'foo');
 is($u->column('password'), 'bar');
+$u->create;
 
-$u = User->create();
+$u = User->create;
 ok($u);
 ok($u->column('id'));
 ok(not defined $u->column('name'));
