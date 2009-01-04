@@ -1,4 +1,4 @@
-use Test::More tests => 1;
+use Test::More tests => 3;
 
 use ObjectDB::SQL;
 
@@ -7,3 +7,9 @@ $sql->source('table');
 
 $sql->where([id => 2, title => 'hello']);
 is("$sql", "SELECT * FROM `table` WHERE (`id` = '2' AND `title` = 'hello')");
+
+$sql->where([\'foo.id = 2', title => 'hello']);
+is("$sql", "SELECT * FROM `table` WHERE (foo.id = 2 AND `title` = 'hello')");
+
+$sql->where(['foo.id' => 2]);
+is("$sql", "SELECT * FROM `table` WHERE (foo.`id` = '2')");

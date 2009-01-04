@@ -50,10 +50,24 @@ sub _where_to_string {
 
             $value = '' unless defined $value;
 
-            $string .= ' AND ' unless $count == 0;
-            $string .= "`$key` = '$value'";
+            if (ref $key eq 'SCALAR') {
+                $string .= $$key;
 
-            $count += 2;
+                $count++;
+            } else {
+                $string .= ' AND ' unless $count == 0;
+
+                if ($key =~ s/\.(\w+)$//) {
+                    my $col = $1;
+                    $key .= ".`$col`";
+                } else {
+                    $key = "`$key`";
+                }
+
+                $string .= "$key = '$value'";
+
+                $count += 2;
+            }
         }
     } else {
         $string .= $where;
