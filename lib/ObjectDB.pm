@@ -778,6 +778,16 @@ sub to_hash {
         $hash->{$key} = $self->column($key);
     }
 
+    foreach my $name (keys %{$self->_relationships}) {
+        my $rel = $self->_relationships->{$name};
+
+        if (ref $rel eq 'ARRAY') {
+        } elsif ($rel->isa('ObjectDB::Iterator')) {
+        } else {
+            $hash->{$name} = $rel->to_hash;
+        }
+    }
+
     return $hash;
 }
 

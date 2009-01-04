@@ -60,3 +60,6 @@ is(Tag->count_objects, 3);
 $article->set_related('tags', [{name => 'more'}, {name => 'haha'}]);
 is($article->count_related('tags'), 2);
 is(Tag->count_objects, 4);
+
+Article->delete_objects;
+
