@@ -4,6 +4,8 @@ use lib 't/lib';
 
 use User;
 
+User->delete_objects;
+
 my $u = User->new(name => 'bar');
 
 is_deeply($u->to_hash, {name => 'bar'});

@@ -10,3 +10,5 @@ my $u = User->select($u_->column('id'));
 is($u->column('id'), $u_->column('id'));
 is($u->column('name'), 'foo');
 is($u->column('password'), 'bar');
+
+User->delete_objects;

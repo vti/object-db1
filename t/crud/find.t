@@ -19,3 +19,5 @@ is($u->column('password'), 'boo');
 
 $u = User->find(id => undef);
 is($u->not_found, 1);
+
+User->delete_objects;

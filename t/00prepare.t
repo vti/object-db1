@@ -76,7 +76,8 @@ $dbh->do(<<"");
 CREATE TABLE `user` (
  `id` INTEGER PRIMARY KEY,
  `name` varchar(40) default '',
- `password` varchar(40) default ''
+ `password` varchar(40) default '',
+ UNIQUE(`name`)
 );
 
 
