@@ -14,12 +14,14 @@ $u->create_related('articles', title => 'foo');
 my $articles =
   Article->find_objects(where => [title => 'foo'], with => 'user');
 
+my $article = $articles->next;
+
 is_deeply(
-    $articles->next->to_hash,
+    $article->to_hash,
     {   title   => 'foo',
         name    => '',
         user_id => $u->column('id'),
-        id      => 2,
+        id      => $article->column('id'),
         user    => {
             id       => $u->column('id'),
             name     => 'foo',

@@ -15,6 +15,7 @@ use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 __PACKAGE__->attr([qw/ is_in_db is_modified not_found /], default => 0);
 __PACKAGE__->attr('iterator');
 __PACKAGE__->attr('_relationships', default => sub { {} });
+__PACKAGE__->attr('sql', default => sub { ObjectDB::SQL->new });
 
 sub new {
     my $class = shift;
@@ -322,30 +323,22 @@ sub find_objects {
 
     my $with;
     if ($with = delete $params{with}) {
-        my $relationship = $class->_load_relationship($with);
-
-        if ($relationship->{type} eq 'many to one' || $relationship->{type} eq
-            'one to one') {
-            my $table = $class->meta->table;
-            my $rel_table = $relationship->{class}->meta->table;
-            my ($from, $to) = %{$relationship->{map}};
-
-            $sql->source(
-                {   name       => $rel_table,
-                    join       => 'left',
-                    constraint => "$rel_table.$to=$table.$from"
-                }
-            );
-
-            #$sql->columns($relationship->{class}->meta->columns);
+        if (my $rel = $class->meta->relationships->{$with}) {
+            if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
+                $sql->source($rel->to_source);
+            } else {
+                die $rel->type . ' is not supported';
+            }
         } else {
-            die $relationship->{type} . ' is not supported yet';
+            die "unknown relatioship '$rel'";
         }
     }
 
     foreach my $key (keys %params) {
         $sql->$key($params{$key});
     }
+
+    $class->_resolve_columns($sql);
 
     my $dbh = $class->init_db;
 
@@ -763,6 +756,49 @@ sub set_related {
 
     foreach my $object (@$objects) {
         $self->create_related($name, %$object);
+    }
+
+    return $self;
+}
+
+sub _resolve_columns {
+    my $self = shift;
+    my ($sql) = @_;
+
+    return unless $sql;
+
+    my $where = $sql->where;
+    return unless $where;
+
+    if (ref $where eq 'ARRAY') {
+        my $count = 0;
+        while (my ($key, $value) = @{$where}[$count, $count + 1]) {
+            last unless $key;
+
+            $value = '' unless defined $value;
+
+            if (ref $key eq 'SCALAR') {
+                $count++;
+            } else {
+                if ($key =~ s/(\w+)\.//) {
+                    my $prefix = $1;
+                    warn 'PREFIX: ' . $prefix;
+
+                    if (my $relationship = $self->meta->relationships->{$prefix}) {
+                        if ($relationship->type eq 'many to one') {
+                            $sql->source($relationship->to_source);
+
+                            my $rel_table = $relationship->related_table;
+                            $where->[$count] = "$rel_table.$key";
+                        } else {
+                            die $relationship->{type} . ' is not supported';
+                        }
+                    }
+                }
+
+                $count += 2;
+            }
+        }
     }
 
     return $self;

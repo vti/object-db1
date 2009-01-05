@@ -1,10 +1,13 @@
-use Test::More tests => 8;
+use Test::More tests => 9;
 
 use ObjectDB::SQL;
 
 my $sql = ObjectDB::SQL->new();
 
 $sql->command('select')->source('foo')->where([id => 2]);
+is("$sql", "SELECT * FROM `foo` WHERE (`id` = '2')");
+
+$sql->command('select')->source('foo')->where([id => 2])->source('foo');
 is("$sql", "SELECT * FROM `foo` WHERE (`id` = '2')");
 
 $sql->command('select')->source('foo')->columns('hello')->where([id => 2]);

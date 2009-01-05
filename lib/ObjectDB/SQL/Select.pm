@@ -16,7 +16,8 @@ sub source {
     $source = {name => $source} unless ref $source eq 'HASH';
 
     $source->{columns} ||= [];
-    push @{$self->_sources}, $source;
+    push @{$self->_sources}, $source
+      unless grep { $_->{name} eq $source->{name} } @{$self->_sources};
 
     return $self;
 }

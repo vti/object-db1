@@ -18,6 +18,8 @@ __PACKAGE__->attr('_unique_keys', default => sub {[]}, chained => 1);
 __PACKAGE__->attr('_columns', default => sub {{}}, chained => 1);
 __PACKAGE__->attr('_columns_array', default => sub {[]}, chained => 1);
 
+use ObjectDB::RelationshipFactory;
+
 our %objects;
 
 sub new {
@@ -28,6 +30,8 @@ sub new {
     foreach my $parent (_get_parents($for_class)) {
         if (my $parent_meta = $objects{$parent}) {
             my $meta = Clone::clone $parent_meta;
+
+            $meta->class($for_class);
 
             return $meta;
         }
@@ -75,14 +79,13 @@ sub new {
         @_
     );
 
-    # preload relationship classes
+    # init relationship classes
     if ($self->relationships && %{$self->relationships}) {
         foreach my $rel (keys %{$self->relationships}) {
-            my $rel_class = $self->relationships->{$rel}->{class};
-            next unless $rel_class;
-            next if $objects{$rel_class};
-            next if $rel_class->can('isa');
-            eval "require $rel_class;";
+            $self->relationships->{$rel} =
+              ObjectDB::RelationshipFactory->build(
+                %{$self->relationships->{$rel}},
+                orig_class => $self->class);
         }
     }
 
@@ -169,7 +172,9 @@ sub add_relationship {
 
     return unless $name && $options;
 
-    $self->relationships->{$name} = $options;
+    $self->relationships->{$name} =
+      ObjectDB::RelationshipFactory->build(%$options,
+        orig_class => $self->class);
 }
 
 sub del_column {

@@ -1,0 +1,24 @@
+use Test::More tests => 3;
+
+use lib 't/lib';
+
+use Article;
+use User;
+
+Article->delete_objects;
+User->delete_objects;
+
+my $user = User->create(name => 'foo', password => 'bar');
+$user->create_related('articles', title => 'zoo');
+$user->create_related('articles', title => 'boo');
+
+my $user = User->create(name => 'boo', password => 'baz');
+$user->create_related('articles', title => 'koo');
+$user->create_related('articles', title => 'goo');
+
+my @articles =
+  Article->find_objects(
+    where => ['user.name' => 'boo', 'user.password' => 'baz']);
+is(@articles, 2);
+is($articles[0]->column('title'), 'koo');
+is($articles[1]->column('title'), 'goo');

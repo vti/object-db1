@@ -45,7 +45,7 @@ __PACKAGE__->meta(
 
     relationships => {
         albums => {
-            type => 'one to many',
+            type => 'many to one',
             class => 'Album',
             map => {id => 'artist_id'}
         }
@@ -86,7 +86,7 @@ __PACKAGE__->meta(
 
 package main;
 
-use Test::More tests => 27;
+use Test::More tests => 28;
 
 use lib 't/lib';
 
@@ -120,11 +120,12 @@ is(Model::Options->meta->is_auto_increment('foo'), 1);
 
 my $relationships = Artist->meta->relationships;
 is(keys %$relationships, 1);
-is_deeply($relationships->{albums}->{class}, 'Album');
+is_deeply($relationships->{albums}->class, 'Album');
 
 $relationships = Advanced->meta->relationships;
 is(keys %$relationships, 2);
-is_deeply($relationships->{foo}->{type}, 'one to one');
+is($relationships->{foo}->orig_class, 'Advanced');
+is_deeply($relationships->{foo}->type, 'one to one');
 
 is_deeply([ColumnsWithOptions->meta->columns], [qw/ id title /]);
 is_deeply(ColumnsWithOptions->meta->_columns,
