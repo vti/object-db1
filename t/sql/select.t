@@ -4,11 +4,11 @@ use ObjectDB::SQL;
 
 my $sql = ObjectDB::SQL->new();
 
-$sql->command('select')->source('foo')->where([id => 2]);
-is("$sql", "SELECT * FROM `foo` WHERE (`id` = '2')");
+$sql->command('select')->source('foo')->columns('foo')->where([id => 2]);
+is("$sql", "SELECT `foo` FROM `foo` WHERE (`id` = '2')");
 
-$sql->command('select')->source('foo')->where([id => 2])->source('foo');
-is("$sql", "SELECT * FROM `foo` WHERE (`id` = '2')");
+$sql->command('select')->source('foo')->columns('foo')->where([id => 2])->source('foo');
+is("$sql", "SELECT `foo` FROM `foo` WHERE (`id` = '2')");
 
 $sql->command('select')->source('foo')->columns('hello')->where([id => 2]);
 is("$sql", "SELECT `hello` FROM `foo` WHERE (`id` = '2')");
@@ -23,8 +23,8 @@ $sql->command('select')->source('foo')->columns(qw/ hello boo /)
 is("$sql", "SELECT `hello`, `boo` FROM `foo` WHERE (`id` = '2') GROUP BY foo HAVING foo ORDER BY hello DESC LIMIT 2 OFFSET 1");
 
 
-$sql->command('select')->source('foo')->where("1 > 2");
-is("$sql", 'SELECT * FROM `foo` WHERE (1 > 2)');
+$sql->command('select')->source('foo')->columns('foo')->where("1 > 2");
+is("$sql", 'SELECT `foo` FROM `foo` WHERE (1 > 2)');
 
 #$sql->command('select')->source('foo')->where({id => {like => '123%'}});
 #is("$sql", 'SELECT * FROM foo WHERE id LIKE 123%');
@@ -47,4 +47,4 @@ $sql->command('select')->source('table1')->source('table2')->source(
         constraint => 'table1.foo=table2.bar'
     }
 )->columns(qw/ foo bar /);
-is("$sql", "SELECT table1.*, table2.*, table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar");
+is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar");

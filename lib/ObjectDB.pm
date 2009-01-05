@@ -329,6 +329,8 @@ sub find_objects {
             } else {
                 die $rel->type . ' is not supported';
             }
+
+            $sql->columns($rel->class->meta->columns);
         } else {
             die "unknown relatioship '$rel'";
         }
@@ -436,6 +438,8 @@ sub count_objects {
     foreach my $key (keys %params) {
         $sql->$key($params{$key});
     }
+
+    $class->_resolve_columns($sql);
 
     warn $sql if DEBUG;
 

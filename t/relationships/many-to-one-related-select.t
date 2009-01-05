@@ -1,4 +1,4 @@
-use Test::More tests => 3;
+use Test::More tests => 5;
 
 use lib 't/lib';
 
@@ -18,7 +18,10 @@ $user->create_related('articles', title => 'goo');
 
 my @articles =
   Article->find_objects(
-    where => ['user.name' => 'boo', 'user.password' => 'baz']);
+    where => ['user.name' => 'boo', 'user.password' => 'baz'], with => 'user');
 is(@articles, 2);
 is($articles[0]->column('title'), 'koo');
+is($articles[0]->related('user')->column('name'), 'boo');
 is($articles[1]->column('title'), 'goo');
+
+is(Article->count_objects(where => ['user.name' => 'boo']), 2);

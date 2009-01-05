@@ -46,18 +46,16 @@ sub to_string {
     my $need_prefix = @{$self->_sources} > 1;
     my $first = 1;
     foreach my $source (@{$self->_sources}) {
-        $query .= ', ' unless $first;
-        my $prefix = $need_prefix ? $source->{name} : undef;
-
         if (@{$source->{columns}}) {
+            $query .= ', ' unless $first;
+            my $prefix = $need_prefix ? $source->{name} : undef;
+
             $query .= join(', ',
                 map { ref $_ ? $$_ : $need_prefix ? "$prefix.`$_`" : "`$_`" }
                   @{$source->{columns}});
-        } else {
-            $query .= $need_prefix ? "$prefix.*" : '*';
-        }
 
-        $first = 0;
+            $first = 0;
+        }
     }
 
     $query .= ' FROM ';
