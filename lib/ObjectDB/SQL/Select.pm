@@ -3,9 +3,9 @@ package ObjectDB::SQL::Select;
 use strict;
 use warnings;
 
-use base 'ObjectDB::Base';
+use base 'ObjectDB::SQL';
 
-__PACKAGE__->attr([qw/ _parent group_by having order_by limit offset /], chained => 1);
+__PACKAGE__->attr([qw/ group_by having order_by limit offset /], chained => 1);
 __PACKAGE__->attr([qw/ _sources _columns bind /], default => sub {[]}, chained => 1);
 __PACKAGE__->attr('where', chained => 1);
 
@@ -60,23 +60,11 @@ sub to_string {
 
     $query .= ' FROM ';
 
-    $first = 1;
-    foreach my $source (@{$self->_sources}) {
-        $query .= ', ' unless $first || $source->{join};
-
-        $query .= ' ' . uc $source->{join} . ' JOIN ' if $source->{join};
-        $query .= '`' . $source->{name} . '`';
-
-        $query .= ' AS ' . '`' . $source->{as} . '`' if $source->{as};
-
-        $query .= ' ON ' . $source->{constraint} if $source->{constraint};
-
-        $first = 0;
-    }
+    $query .= $self->_sources_to_string;
 
     if ($self->where) {
         $query .= ' WHERE ';
-        $query .= $self->_parent->_where_to_string($self->where);
+        $query .= $self->_where_to_string($self->where);
     }
 
     $query .= ' GROUP BY ' . $self->group_by if $self->group_by;
@@ -90,6 +78,28 @@ sub to_string {
     $query .= ' OFFSET ' . $self->offset if $self->offset;
 
     return $query;
+}
+
+sub _sources_to_string {
+    my $self = shift;
+
+    my $string = "";
+
+    my $first = 1;
+    foreach my $source (@{$self->_sources}) {
+        $string .= ', ' unless $first || $source->{join};
+
+        $string .= ' ' . uc $source->{join} . ' JOIN ' if $source->{join};
+        $string .= '`' . $source->{name} . '`';
+
+        $string .= ' AS ' . '`' . $source->{as} . '`' if $source->{as};
+
+        $string .= ' ON ' . $source->{constraint} if $source->{constraint};
+
+        $first = 0;
+    }
+
+    return $string;
 }
 
 1;

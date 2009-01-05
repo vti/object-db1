@@ -3,9 +3,9 @@ package ObjectDB::SQL::Delete;
 use strict;
 use warnings;
 
-use base 'ObjectDB::Base';
+use base 'ObjectDB::SQL';
 
-__PACKAGE__->attr([qw/ _parent table where bind /], chained => 1);
+__PACKAGE__->attr([qw/ table where bind /], chained => 1);
 
 sub to_string {
     my $self = shift;
@@ -17,7 +17,7 @@ sub to_string {
 
     if ($self->where) {
         $query .= ' WHERE ';
-        $query .= $self->_parent->_where_to_string($self->where);
+        $query .= $self->_where_to_string($self->where);
     }
 
     return $query;

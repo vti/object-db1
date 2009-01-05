@@ -1,8 +1,8 @@
 use Test::More tests => 3;
 
-use ObjectDB::SQL;
+use ObjectDB::SQLBuilder;
 
-my $sql = ObjectDB::SQL->new(command => 'select');
+my $sql = ObjectDB::SQLBuilder->build('select');
 $sql->source('table');
 
 $sql->columns('foo')->where([id => 2, title => 'hello']);

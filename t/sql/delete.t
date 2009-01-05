@@ -1,11 +1,11 @@
 use Test::More tests => 2;
 
-use ObjectDB::SQL;
+use ObjectDB::SQLBuilder;
 
-my $sql = ObjectDB::SQL->new();
+my $sql = ObjectDB::SQLBuilder->build('delete');
 
-$sql->command('delete')->table('foo');
+$sql->table('foo');
 is("$sql", "DELETE FROM `foo`");
 
-$sql->command('delete')->table('foo')->where([id => 2]);
+$sql = ObjectDB::SQLBuilder->build('delete')->table('foo')->where([id => 2]);
 is("$sql", "DELETE FROM `foo` WHERE (`id` = '2')");

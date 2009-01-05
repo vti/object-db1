@@ -3,7 +3,7 @@ package ObjectDB::SQL::Insert;
 use strict;
 use warnings;
 
-use base 'ObjectDB::Base';
+use base 'ObjectDB::SQL';
 
 __PACKAGE__->attr([qw/ table driver /], chained => 1);
 __PACKAGE__->attr('columns', default => sub { [] }, chained => 1);

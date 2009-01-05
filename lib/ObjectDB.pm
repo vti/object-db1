@@ -6,7 +6,7 @@ use warnings;
 use base 'ObjectDB::Base';
 
 use DBI;
-use ObjectDB::SQL;
+use ObjectDB::SQLBuilder;
 use ObjectDB::Meta;
 use ObjectDB::Iterator;
 
@@ -15,7 +15,6 @@ use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 __PACKAGE__->attr([qw/ is_in_db is_modified not_found /], default => 0);
 __PACKAGE__->attr('iterator');
 __PACKAGE__->attr('_relationships', default => sub { {} });
-__PACKAGE__->attr('sql', default => sub { ObjectDB::SQL->new });
 
 sub new {
     my $class = shift;
@@ -154,9 +153,9 @@ sub create {
 
     my $dbh = $self->init_db;
 
-    my $sql = ObjectDB::SQL->new(command => 'insert',
-                                 table   => $self->meta->table,
-                                 columns => [$self->columns]);
+    my $sql =
+      ObjectDB::SQLBuilder->build('insert')->table($self->meta->table)
+      ->columns([$self->columns]);
 
     my @values = map { $self->column($_) } $self->columns;
 
@@ -195,9 +194,9 @@ sub find {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new;
+    my $sql = ObjectDB::SQLBuilder->build('select');
 
-    $sql->command('select')->source($self->meta->table)
+    $sql->source($self->meta->table)
       ->columns($self->meta->columns)
       ->where([map { $_ => $self->column($_) } @columns]);
 
@@ -244,10 +243,9 @@ sub update {
 
     my @columns = grep { !$self->meta->is_primary_key($_)} $self->meta->columns;
 
-    my $sql = ObjectDB::SQL->new(command => 'update',
-                                 table   => $self->meta->table,
-                                 columns => \@columns,
-                                 where   => [%params]);
+    my $sql =
+      ObjectDB::SQLBuilder->build('update')->table($self->meta->table)
+      ->columns(\@columns)->where([%params]);
 
     warn $sql if DEBUG;
 
@@ -286,9 +284,9 @@ sub delete {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(command => 'delete',
-                                 table   => $class->meta->table,
-                                 where   => [%params]);
+    my $sql =
+      ObjectDB::SQLBuilder->build('delete')->table($class->meta->table)
+      ->where([%params]);
 
     warn $sql if DEBUG;
 
@@ -310,9 +308,8 @@ sub find_objects {
         @columns = $class->meta->columns;
     }
 
-    my $sql = ObjectDB::SQL->new;
-
-    $sql->command('select', %params)->source($class->meta->table)
+    my $sql =
+      ObjectDB::SQLBuilder->build('select')->source($class->meta->table)
       ->columns(@columns);
 
     if (my $sources = delete $params{source}) {
@@ -336,9 +333,7 @@ sub find_objects {
         }
     }
 
-    foreach my $key (keys %params) {
-        $sql->$key($params{$key});
-    }
+    $sql->merge(%params);
 
     $class->_resolve_columns($sql);
 
@@ -392,9 +387,9 @@ sub update_objects {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(command => 'update',
-                                 table   => $class->meta->table,
-                                 @_);
+    my $sql =
+      ObjectDB::SQLBuilder->build('update')->table($class->meta->table)
+      ->merge(@_);
 
     unless (@{$sql->columns}) {
         $sql->columns([grep { !$class->meta->is_primary_key($_) }
@@ -411,9 +406,11 @@ sub delete_objects {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new(command => 'delete',
-                                 table   => $class->meta->table,
-                                 @_);
+    my $sql =
+      ObjectDB::SQLBuilder->build('delete')->table($class->meta->table)
+      ->merge(@_);
+
+    $class->_resolve_columns($sql);
 
     warn $sql if DEBUG;
 
@@ -426,18 +423,15 @@ sub count_objects {
 
     my $dbh = $class->init_db;
 
-    my $sql = ObjectDB::SQL->new;
-
-    $sql->command('select')->source($class->meta->table)
+    my $sql =
+      ObjectDB::SQLBuilder->build('select')->source($class->meta->table)
       ->columns(\'COUNT(*) AS count');
 
     if (my $sources = delete $params{source}) {
         $sql->source($_) foreach @$sources;
     }
 
-    foreach my $key (keys %params) {
-        $sql->$key($params{$key});
-    }
+    $sql->merge(%params);
 
     $class->_resolve_columns($sql);
 
