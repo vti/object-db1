@@ -5,34 +5,7 @@ use warnings;
 
 use base 'ObjectDB::Relationship';
 
-__PACKAGE__->attr([qw/ _class map /]);
-
-sub new {
-    my $class = shift;
-    my %params = @_;
-
-    my $self = $class->SUPER::new(@_, _class => delete $params{class});
-    
-    return $self;
-}
-
-sub class {
-    my $self = shift;
-
-    my $class = $self->_class;
-
-    unless ($class->can('isa')) {
-        eval "require $class;";
-    }
-
-    return $class;
-}
-
-sub related_table {
-    my $self = shift;
-
-    return $self->class->meta->table;
-}
+__PACKAGE__->attr([qw/ map /]);
 
 sub to_source {
     my $self = shift;

@@ -5,14 +5,17 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-__PACKAGE__->attr([qw/ type _orig_class /]);
+__PACKAGE__->attr([qw/ type _orig_class _class /]);
 
 sub new {
     my $class = shift;
     my %params = @_;
 
-    my $self =
-      $class->SUPER::new(@_, _orig_class => delete $params{orig_class});
+    my $self = $class->SUPER::new(
+        @_,
+        _orig_class => delete $params{orig_class},
+        _class      => delete $params{class}
+    );
     
     return $self;
 }
@@ -28,6 +31,25 @@ sub orig_class {
 
     return $orig_class;
 }
+
+sub class {
+    my $self = shift;
+
+    my $class = $self->_class;
+
+    unless ($class->can('isa')) {
+        eval "require $class;";
+    }
+
+    return $class;
+}
+
+sub related_table {
+    my $self = shift;
+
+    return $self->class->meta->table;
+}
+
 
 sub _load_relationship {
     my $self = shift;

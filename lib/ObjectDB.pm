@@ -783,14 +783,14 @@ sub _resolve_columns {
                     warn 'PREFIX: ' . $prefix;
 
                     if (my $relationship = $self->meta->relationships->{$prefix}) {
-                        if ($relationship->type eq 'many to one') {
-                            $sql->source($relationship->to_source);
-
-                            my $rel_table = $relationship->related_table;
-                            $where->[$count] = "$rel_table.$key";
-                        } else {
-                            die $relationship->{type} . ' is not supported';
+                        if ($relationship->type eq 'many to many') {
+                            $sql->source($relationship->to_map_source);
                         }
+
+                        $sql->source($relationship->to_source);
+
+                        my $rel_table = $relationship->related_table;
+                        $where->[$count] = "$rel_table.$key";
                     }
                 }
 

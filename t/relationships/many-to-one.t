@@ -16,3 +16,6 @@ $article = Article->create(user_id => $u->column('id'), title => 'boo');
 my $user = $article->find_related('user');
 is($user->column('id'), $u->column('id'));
 is($user->column('name'), 'root');
+
+Article->delete_objects;
+User->delete_objects;
