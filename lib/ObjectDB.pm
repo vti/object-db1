@@ -136,7 +136,19 @@ sub _process_related {
                 if ($self->meta->relationships->{$rel}->{type} eq 'many to many') {
                     $self->set_related($rel, $rel_values);
                 } else {
-                    die 'not supported yet!';
+                    my $objects;
+
+                    if (ref $rel_values eq 'ARRAY') {
+                        $objects = $rel_values;
+                    } elsif (ref $rel_values eq 'HASH') {
+                        $objects = [$rel_values];
+                    } else {
+                        die 'wrong params';
+                    }
+
+                    foreach my $object (@$objects) {
+                        $self->create_related($rel, %$object);
+                    }
                 }
             }
         }
@@ -778,11 +790,11 @@ sub _resolve_columns {
             if (ref $key eq 'SCALAR') {
                 $count++;
             } else {
-                if ($key =~ s/(\w+)\.//) {
+                my $relationships = $self->meta->relationships;
+                while ($key =~ s/^(\w+)\.//) {
                     my $prefix = $1;
-                    warn 'PREFIX: ' . $prefix;
 
-                    if (my $relationship = $self->meta->relationships->{$prefix}) {
+                    if (my $relationship = $relationships->{$prefix}) {
                         if ($relationship->type eq 'many to many') {
                             $sql->source($relationship->to_map_source);
                         }
@@ -791,6 +803,9 @@ sub _resolve_columns {
 
                         my $rel_table = $relationship->related_table;
                         $where->[$count] = "$rel_table.$key";
+
+                        $relationships =
+                          $relationship->class->meta->relationships;
                     }
                 }
 
