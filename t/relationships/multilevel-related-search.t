@@ -25,3 +25,7 @@ User->create(
 my @users = User->find_objects(where => ['articles.tags.name' => 'good']);
 is(@users, 1);
 is($users[0]->column('name'), 'boo');
+
+User->delete_objects;
+Article->delete_objects;
+Tag->delete_objects;
