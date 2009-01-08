@@ -1,4 +1,4 @@
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 use ObjectDB::SQLBuilder;
 
@@ -40,6 +40,7 @@ $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->columns('bar_2.f
     }
 )->columns(qw/ bar baz/);
 
+is("$sql", "SELECT bar_2.`foo`, table2.`bar`, table2.`baz` FROM `table1` INNER JOIN `table2` ON table1.foo=table2.bar");
 is("$sql", "SELECT bar_2.`foo`, table2.`bar`, table2.`baz` FROM `table1` INNER JOIN `table2` ON table1.foo=table2.bar");
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->columns('foo')->source(

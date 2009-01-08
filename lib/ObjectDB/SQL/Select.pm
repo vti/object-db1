@@ -54,15 +54,17 @@ sub to_string {
                 if (ref $col) {
                     push @columns, $$col;
                 } else {
-                    my $prefix;
+                    my $col_full = $col;
 
-                    if ($col =~ s/^(\w+)\.//) {
-                        $prefix = $1;
+                    if ($col_full =~ s/^(\w+)\.//) {
+                        $col_full = "$1.`$col_full`"
+                    } elsif ($need_prefix) {
+                        $col_full = $source->{name} . ".`$col_full`"
                     } else {
-                        $prefix = $need_prefix ? $source->{name} : undef;
+                        $col_full = "`$col_full`";
                     }
 
-                    push @columns, $prefix ? "$prefix.`$col`" : "`$col`";
+                    push @columns, $col_full;
                 }
             }
 
