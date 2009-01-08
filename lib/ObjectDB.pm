@@ -373,8 +373,8 @@ sub find_objects {
 
                 if ($relationship->{type} eq 'many to one' ||
                     $relationship->{type} eq 'one to one') {
-                    %values = map { $_ => shift @$row } $relationship->{class}->meta->columns;
-                    $object->_relationships->{$with} = $relationship->{class}->new(%values);
+                    %values = map { $_ => shift @$row } $relationship->class->meta->columns;
+                    $object->_relationships->{$with} = $relationship->class->new(%values);
                 } else {
                     die 'not supported';
                 }
@@ -482,10 +482,10 @@ sub _load_relationship {
         }
 
         $relationship->{class} =
-          $class->meta->relationships->{$relationship->{map_to}}->{class};
+          $class->meta->relationships->{$relationship->{map_to}}->class;
     }
 
-    $class = $relationship->{class};
+    $class = $relationship->class;
 
     unless ($class->can('isa')) {
         eval "require $class;";
@@ -528,9 +528,9 @@ sub create_related {
           %{$relationship->{map_class}->meta->relationships->{$map_to}
               ->{map}};
 
-        my $object = $relationship->{class}->find(@_);
+        my $object = $relationship->class->find(@_);
         if ($object->not_found) {
-            $object = $relationship->{class}->create(@_);
+            $object = $relationship->class->create(@_);
         }
 
         $relationship->{map_class}->create(
@@ -550,9 +550,9 @@ sub create_related {
         }
 
         if (@_ == 1 && ref $_[0]) {
-            return $relationship->{class}->create(%{$_[0]->to_hash}, @params);
+            return $relationship->class->create(%{$_[0]->to_hash}, @params);
         } else {
-            return $relationship->{class}->create(@params, @_);
+            return $relationship->class->create(@params, @_);
         }
     }
 }
@@ -611,7 +611,7 @@ sub find_related {
           %{$relationship->{map_class}->meta->relationships->{$map_to}
               ->{map}};
 
-        my $table = $relationship->{class}->meta->table;
+        my $table = $relationship->class->meta->table;
         my $map_table = $relationship->{map_class}->meta->table;
         $params{source} = [
             {   name     => $map_table,
@@ -637,7 +637,7 @@ sub find_related {
         push @{$params{where}}, %{$relationship->{where}};
     }
 
-    return $relationship->{class}->find_objects(%params);
+    return $relationship->class->find_objects(%params);
 }
 
 sub count_related {
@@ -663,7 +663,7 @@ sub count_related {
           %{$relationship->{map_class}->meta->relationships->{$map_to}
               ->{map}};
 
-        my $table = $relationship->{class}->meta->table;
+        my $table = $relationship->class->meta->table;
         my $map_table = $relationship->{map_class}->meta->table;
         $params{source} = [
             {   name     => $map_table,
@@ -681,7 +681,7 @@ sub count_related {
         push @{$params{where}}, %{$relationship->{where}};
     }
 
-    return $relationship->{class}->count_objects(%params);
+    return $relationship->class->count_objects(%params);
 }
 
 sub update_related {
@@ -701,7 +701,7 @@ sub update_related {
         push @$where, %{$relationship->{where}};
     }
 
-    return $relationship->{class}->update_objects(
+    return $relationship->class->update_objects(
         where => [$to => $self->column($from), @$where],
         @_
     );

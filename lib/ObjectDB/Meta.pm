@@ -85,7 +85,7 @@ sub new {
             $self->relationships->{$rel} =
               ObjectDB::RelationshipFactory->build(
                 %{$self->relationships->{$rel}},
-                orig_class => $self->class);
+                orig_class => $for_class);
         }
     }
 

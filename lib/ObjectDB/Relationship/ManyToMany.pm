@@ -5,7 +5,31 @@ use warnings;
 
 use base 'ObjectDB::Relationship';
 
-__PACKAGE__->attr([qw/ map_class map_from map_to /]);
+__PACKAGE__->attr([qw/ _map_class map_from map_to /]);
+
+sub new {
+    my $class = shift;
+    my %params = @_;
+
+    my $self = $class->SUPER::new(
+        @_,
+        _map_class => delete $params{map_class},
+    );
+
+    return $self;
+}
+
+sub map_class {
+    my $self = shift;
+
+    my $map_class = $self->_map_class;
+
+    unless ($map_class->can('isa')) {
+        eval "require $map_class;";
+    }
+
+    return $map_class;
+}
 
 sub class {
     my $self = shift;

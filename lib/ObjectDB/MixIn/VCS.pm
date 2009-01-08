@@ -141,7 +141,7 @@ sub _versioned_columns {
             !$self->meta->is_primary_key($_)
           && $_ !~ m/(?:addtime|revision)/
           && !$self->meta->_columns->{$_}->{no_vcs}
-    } $self->meta->relationships->{diffs}->{class}->meta->columns;
+    } $self->meta->relationships->{diffs}->class->meta->columns;
 }
 
 sub _not_versioned_columns {
