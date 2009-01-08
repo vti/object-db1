@@ -1,4 +1,4 @@
-use Test::More tests => 9;
+use Test::More tests => 11;
 
 use ObjectDB::SQLBuilder;
 
@@ -15,6 +15,9 @@ $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns(qw/ hello b
   ->where([id => 2]);
 is("$sql", "SELECT `hello`, `boo` FROM `foo` WHERE (`id` = '2')");
 
+$sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns('foo.hello')->where([id => 2]);
+is("$sql", "SELECT foo.`hello` FROM `foo` WHERE (`id` = '2')");
+
 $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns(qw/ hello boo /)
   ->where([id => 2])->group_by('foo')->having('foo')->order_by('hello DESC')
   ->limit(2)->offset(1);
@@ -29,6 +32,15 @@ is("$sql", 'SELECT `foo` FROM `foo` WHERE (1 > 2)');
 
 $sql = ObjectDB::SQLBuilder->build('select')->source({name => 'foo', as => 'boo'})->columns(qw/ foo bar /);
 is("$sql", 'SELECT `foo`, `bar` FROM `foo` AS `boo`');
+
+$sql = ObjectDB::SQLBuilder->build('select')->source('table1')->columns('bar_2.foo')->source(
+    {   join       => 'inner',
+        name       => 'table2',
+        constraint => 'table1.foo=table2.bar'
+    }
+)->columns(qw/ bar baz/);
+
+is("$sql", "SELECT bar_2.`foo`, table2.`bar`, table2.`baz` FROM `table1` INNER JOIN `table2` ON table1.foo=table2.bar");
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->columns('foo')->source(
     {   join       => 'inner',

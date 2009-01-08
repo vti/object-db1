@@ -48,11 +48,25 @@ sub to_string {
     foreach my $source (@{$self->_sources}) {
         if (@{$source->{columns}}) {
             $query .= ', ' unless $first;
-            my $prefix = $need_prefix ? $source->{name} : undef;
 
-            $query .= join(', ',
-                map { ref $_ ? $$_ : $need_prefix ? "$prefix.`$_`" : "`$_`" }
-                  @{$source->{columns}});
+            my @columns;
+            foreach my $col (@{$source->{columns}}) {
+                if (ref $col) {
+                    push @columns, $$col;
+                } else {
+                    my $prefix;
+
+                    if ($col =~ s/^(\w+)\.//) {
+                        $prefix = $1;
+                    } else {
+                        $prefix = $need_prefix ? $source->{name} : undef;
+                    }
+
+                    push @columns, $prefix ? "$prefix.`$col`" : "`$col`";
+                }
+            }
+
+            $query .= join(', ', @columns);
 
             $first = 0;
         }
