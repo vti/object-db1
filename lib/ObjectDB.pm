@@ -214,7 +214,7 @@ sub find {
 
     warn "$sql" if DEBUG;
 
-    my $hash_ref = $dbh->selectrow_hashref("$sql");
+    my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
 
     unless (keys %$hash_ref) {
         $self->not_found(1);
@@ -264,7 +264,7 @@ sub update {
     my @values = map { $self->column($_) } @columns;
 
     my $sth = $dbh->prepare("$sql");
-    my $rv = $sth->execute(@values);
+    my $rv = $sth->execute(@values, @{$sql->bind});
 
     $self->_process_related;
 
@@ -302,7 +302,9 @@ sub delete {
 
     warn $sql if DEBUG;
 
-    return $dbh->do("$sql");
+    my $sth = $dbh->prepare("$sql");
+
+    return $sth->execute(@{$sql->bind});
 }
 
 sub find_objects {
@@ -357,9 +359,11 @@ sub find_objects {
         warn $sql if DEBUG;
 
         my $sth = $dbh->prepare("$sql");
-        $sth->execute;
+        $sth->execute(@{$sql->bind});
 
         my $results = $sth->fetchall_arrayref;
+        #use Data::Dumper;
+        #warn Dumper $results;
         return unless $results && @$results;
 
         my @objects;
@@ -388,7 +392,7 @@ sub find_objects {
 
         my $sth = $dbh->prepare("$sql");
 
-        $sth->execute();
+        $sth->execute(@{$sql->bind});
 
         ObjectDB::Iterator->new(with => $with, sth => $sth, class => $class);
     }
@@ -426,7 +430,9 @@ sub delete_objects {
 
     warn $sql if DEBUG;
 
-    return $dbh->do("$sql");
+    my $sth = $dbh->prepare("$sql");
+
+    return $sth->execute(@{$sql->bind});
 }
 
 sub count_objects {
@@ -449,7 +455,7 @@ sub count_objects {
 
     warn $sql if DEBUG;
 
-    my $hash_ref = $dbh->selectrow_hashref("$sql");
+    my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
 
     return $hash_ref->{count};
 }
@@ -773,9 +779,10 @@ sub set_related {
 
 sub _resolve_columns {
     my $self = shift;
-    my ($sql) = @_;
 
-    return unless $sql;
+    return unless @_;
+
+    my ($sql) = @_;
 
     my $where = $sql->where;
     return unless $where;
@@ -784,8 +791,6 @@ sub _resolve_columns {
         my $count = 0;
         while (my ($key, $value) = @{$where}[$count, $count + 1]) {
             last unless $key;
-
-            $value = '' unless defined $value;
 
             if (ref $key eq 'SCALAR') {
                 $count++;

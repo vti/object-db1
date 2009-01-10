@@ -14,3 +14,6 @@ my @tags = $article->find_related('tags');
 is(scalar @tags, 2);
 
 is(Tag->count_objects, 2);
+
+Tag->delete_objects;
+$article->delete;

@@ -6,7 +6,7 @@ use warnings;
 use base 'ObjectDB::SQL';
 
 __PACKAGE__->attr([qw/ group_by having order_by limit offset /], chained => 1);
-__PACKAGE__->attr([qw/ _sources _columns bind /], default => sub {[]}, chained => 1);
+__PACKAGE__->attr([qw/ _sources _columns /], default => sub {[]}, chained => 1);
 __PACKAGE__->attr('where', chained => 1);
 
 sub source {

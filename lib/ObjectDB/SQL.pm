@@ -7,6 +7,9 @@ use overload '""' => sub { shift->to_string }, fallback => 1;
 
 use base 'ObjectDB::Base';
 
+__PACKAGE__->attr([qw/ bind /], default => sub {[]}, chained => 1);
+__PACKAGE__->attr('_string');
+
 sub merge {
     my $self = shift;
     my %params = @_;
@@ -21,6 +24,8 @@ sub merge {
 sub _where_to_string {
     my $self = shift;
     my ($where) = @_;
+
+    return $self->_string if $self->_string;
 
     my $string = "";
 
@@ -45,7 +50,8 @@ sub _where_to_string {
                     $key = "`$key`";
                 }
 
-                $string .= "$key = '$value'";
+                $string .= "$key = ?";
+                push @{$self->bind}, $value;
 
                 $count += 2;
             }
@@ -54,7 +60,7 @@ sub _where_to_string {
         $string .= $where;
     }
 
-    return "($string)";
+    return $self->_string("($string)");
 }
 
 sub to_string {
