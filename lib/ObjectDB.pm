@@ -229,6 +229,7 @@ sub create {
 
 sub find {
     my $self = shift;
+    my %params = @_;
 
     my @columns;
     foreach my $name ($self->columns) {
@@ -239,21 +240,34 @@ sub find {
 
     die "no primary or unique keys specified" unless @columns;
 
-    my $dbh = $self->init_db;
-
     my $sql = ObjectDB::SQLBuilder->build('select');
 
     $sql->source($self->meta->table)
       ->columns($self->meta->columns)
       ->where([map { $_ => $self->column($_) } @columns]);
 
+    my $with = $params{with};
+    if ($with) {
+        $self->_resolve_with($sql, $with);
+    }
+
     warn "$sql" if DEBUG;
 
-    my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
+    my $dbh = $self->init_db;
 
-    return unless keys %$hash_ref;
+    my $sth = $dbh->prepare("$sql");
+    $sth->execute(@{$sql->bind});
 
-    $self->init(%$hash_ref);
+    my $results = $sth->fetchall_arrayref;
+    return unless $results && @$results;
+
+    $self->_map_row_to_object(
+        row     => $results->[0],
+        columns => [$sql->columns],
+        with    => $with,
+        object => $self
+    );
+
     $self->is_modified(0);
     $self->is_in_db(1);
 
@@ -347,17 +361,7 @@ sub find_objects {
 
     my $with;
     if ($with = delete $params{with}) {
-        if (my $rel = $class->meta->relationships->{$with}) {
-            if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
-                $sql->source($rel->to_source);
-            } else {
-                die $rel->type . ' is not supported';
-            }
-
-            $sql->columns($rel->class->meta->columns);
-        } else {
-            die "unknown relatioship '$rel'";
-        }
+        $class->_resolve_with($sql, $with);
     }
 
     $sql->merge(%params);
@@ -375,28 +379,15 @@ sub find_objects {
         $sth->execute(@{$sql->bind});
 
         my $results = $sth->fetchall_arrayref;
-        #use Data::Dumper;
-        #warn Dumper $results;
-        #warn Dumper $sql->columns;
         return unless $results && @$results;
 
         my @objects;
         foreach my $row (@$results) {
-            my %values = map { $_ => shift @$row } $sql->columns;
-
-            my $object = $class->new(%values);
-
-            if ($with) {
-                my $relationship = $object->meta->relationships->{$with};
-
-                if ($relationship->{type} eq 'many to one' ||
-                    $relationship->{type} eq 'one to one') {
-                    %values = map { $_ => shift @$row } $relationship->class->meta->columns;
-                    $object->_relationships->{$with} = $relationship->class->new(%values);
-                } else {
-                    die 'not supported';
-                }
-            }
+            my $object = $class->_map_row_to_object(
+                row     => $row,
+                columns => [$sql->columns],
+                with    => $with
+            );
 
             push @objects, $object;
         }
@@ -542,6 +533,11 @@ sub create_related {
             return $object;
         }
 
+        my $object = $relationship->class->new(@_)->find;
+        unless ($object) {
+            $object = $relationship->class->new(@_)->create;
+        }
+
         my $map_from = $relationship->{map_from};
         my $map_to = $relationship->{map_to};
 
@@ -552,11 +548,6 @@ sub create_related {
         my ($to_foreign_pk, $to_pk) =
           %{$relationship->{map_class}->meta->relationships->{$map_to}
               ->{map}};
-
-        my $object = $relationship->class->new(@_)->find;
-        unless ($object) {
-            $object = $relationship->class->new(@_)->create;
-        }
 
         $relationship->{map_class}->new(
             $from_foreign_pk => $self->column($from_pk),
@@ -630,7 +621,7 @@ sub find_related {
           %{$relationship->{map_class}->meta->relationships->{$map_from}
               ->{map}};
 
-        push @{$params{where}}, ($to => $self->column($from));
+        push @{$params{where}}, ($relationship->map_class->meta->table .  '.' . $to => $self->column($from));
 
         ($from, $to) =
           %{$relationship->{map_class}->meta->relationships->{$map_to}
@@ -682,7 +673,7 @@ sub count_related {
           %{$relationship->{map_class}->meta->relationships->{$map_from}
               ->{map}};
 
-        push @{$params{where}}, ($to => $self->column($from));
+        push @{$params{where}}, ($relationship->map_class->meta->table .  '.' . $to => $self->column($from));
 
         ($from, $to) =
           %{$relationship->{map_class}->meta->relationships->{$map_to}
@@ -796,9 +787,55 @@ sub set_related {
     return $self;
 }
 
+sub _map_row_to_object {
+    my $class = shift;
+    my %params = @_;
+
+    my $row = $params{row};
+    my $with = $params{with};
+    my $columns = $params{columns};
+    my $o = $params{object};
+
+    my %values = map { $_ => shift @$row } @$columns;
+
+    my $object = $o ? $o->init(%values) : $class->new(%values);
+
+    if ($with) {
+        my $relationship = $object->meta->relationships->{$with};
+
+        if ($relationship->{type} eq 'many to one' ||
+            $relationship->{type} eq 'one to one') {
+            %values = map { $_ => shift @$row } $relationship->class->meta->columns;
+            $object->_relationships->{$with} = $relationship->class->new(%values);
+        } else {
+            die 'not supported';
+        }
+    }
+    
+    return $object;
+}
+
+sub _resolve_with {
+    my $class = shift;
+    return unless @_;
+
+    my ($sql, $with) = @_;
+
+    if (my $rel = $class->meta->relationships->{$with}) {
+        if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
+            $sql->source($rel->to_source);
+        } else {
+            die $rel->type . ' is not supported';
+        }
+
+        $sql->columns($rel->class->meta->columns);
+    } else {
+        die "unknown relatioship '$rel'";
+    }
+}
+
 sub _resolve_columns {
     my $self = shift;
-
     return unless @_;
 
     my ($sql) = @_;

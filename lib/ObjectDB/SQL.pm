@@ -23,7 +23,7 @@ sub merge {
 
 sub _where_to_string {
     my $self = shift;
-    my ($where) = @_;
+    my ($where, $default_prefix) = @_;
 
     return $self->_where_string if $self->_where_string;
 
@@ -46,6 +46,9 @@ sub _where_to_string {
                 if ($key =~ s/\.(\w+)$//) {
                     my $col = $1;
                     $key .= ".`$col`";
+                }
+                elsif ($default_prefix) {
+                    $key = "$default_prefix.`$key`";
                 }
                 else {
                     $key = "`$key`";

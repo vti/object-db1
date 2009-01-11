@@ -100,9 +100,14 @@ sub to_string {
 
     $query .= $self->_sources_to_string;
 
+    my $default_prefix;
+    if ($need_prefix) {
+        $default_prefix = $self->_sources->[0]->{name};
+    }
+
     if ($self->where) {
         $query .= ' WHERE ';
-        $query .= $self->_where_to_string($self->where);
+        $query .= $self->_where_to_string($self->where, $default_prefix);
     }
 
     $query .= ' GROUP BY ' . $self->group_by if $self->group_by;

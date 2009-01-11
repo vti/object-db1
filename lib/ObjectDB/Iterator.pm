@@ -20,25 +20,11 @@ sub next {
 
     my @columns = $self->class->meta->columns;
 
-    my %values = map { $_ => shift @row } @columns;
-
-    my $object = $self->class->new(%values);
-
-    if ($self->with) {
-        my $relationship = $object->meta->relationships->{$self->with};
-
-        if (   $relationship->{type} eq 'many to one'
-            || $relationship->{type} eq 'one to one')
-        {
-            %values =
-              map { $_ => shift @row } $relationship->{class}->meta->columns;
-            $object->_relationships->{$self->with} =
-              $relationship->{class}->new(%values);
-        }
-        else {
-            die 'not supported';
-        }
-    }
+    my $object = $self->class->_map_row_to_object(
+        row  => \@row,
+        columns => \@columns,
+        with => $self->with
+    );
 
     $object->iterator($self);
 
