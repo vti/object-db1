@@ -158,6 +158,42 @@ sub _process_related {
     }
 }
 
+sub begin {
+    my $class = shift;
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQLBuilder->build('begin')->merge(@_);
+
+    warn "$sql" if DEBUG;
+
+    return $dbh->do("$sql");
+}
+
+sub rollback {
+    my $class = shift;
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQLBuilder->build('rollback');
+
+    warn "$sql" if DEBUG;
+
+    return $dbh->do("$sql");
+}
+
+sub commit {
+    my $class = shift;
+
+    my $dbh = $class->init_db;
+
+    my $sql = ObjectDB::SQLBuilder->build('commit');
+
+    warn "$sql" if DEBUG;
+
+    return $dbh->do("$sql");
+}
+
 sub create {
     my $class = shift;
     my $self = ref $class ? $class : $class->new(@_);
