@@ -237,6 +237,8 @@ sub find {
               || $self->meta->is_unique_key($name);
     }
 
+    die "no primary or unique keys specified" unless @columns;
+
     my $dbh = $self->init_db;
 
     my $sql = ObjectDB::SQLBuilder->build('select');
