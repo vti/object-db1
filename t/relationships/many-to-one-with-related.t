@@ -8,7 +8,7 @@ use User;
 Article->delete_objects;
 User->delete_objects;
 
-my $user = User->create(name => 'foo', password => 'bar');
+my $user = User->new(name => 'foo', password => 'bar')->create;
 $user->create_related('articles', title => 'zoo');
 $user->create_related('articles', title => 'boo');
 

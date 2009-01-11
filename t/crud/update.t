@@ -4,12 +4,12 @@ use lib 't/lib';
 
 use User;
 
-my $u = User->create(name => 'foo', password => 'bar');
+my $u = User->new(name => 'foo', password => 'bar')->create;
 
 $u->column(name => 'fuu');
 $u->column(password => 'boo');
 $u->update;
 
-$u = User->find(id => $u->column('id'));
+$u = User->new(id => $u->column('id'))->find;
 is($u->column('name'), 'fuu');
 is($u->column('password'), 'boo');

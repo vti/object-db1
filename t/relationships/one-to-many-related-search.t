@@ -5,10 +5,10 @@ use lib 't/lib';
 use Article;
 use User;
 
-my $u = User->create(name => 'foo');
+my $u = User->new(name => 'foo')->create;
 $u->create_related('articles', title => 'bar');
 
-$u = User->create(name => 'bar');
+$u = User->new(name => 'bar')->create;
 $u->create_related('articles', title => 'foo');
 
 my @users = User->find_objects(where => ['articles.title' => 'boo']);

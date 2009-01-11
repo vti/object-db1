@@ -5,7 +5,7 @@ use lib 't/lib';
 use Article;
 use User;
 
-my $u = User->create;
+my $u = User->new->create;
 is($u->count_related('articles'), 0);
 
 Article->delete_objects;
@@ -13,7 +13,7 @@ Article->delete_objects;
 my @articles = $u->find_related('articles');
 is(@articles, 0);
 
-Article->create(title => 'mega');
+Article->new(title => 'mega')->create;
 
 $u->create_related('articles', Article->new(title => 'boo'));
 $u->create_related('articles', title => 'foo');

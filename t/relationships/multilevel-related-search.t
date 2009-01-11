@@ -10,17 +10,17 @@ User->delete_objects;
 Article->delete_objects;
 Tag->delete_objects;
 
-User->create(
+User->new(
     name     => 'foo',
     password => 'bar',
     articles => [{title => 'hello', tags => {name => 'shit'}}]
-);
+)->create;
 
-User->create(
+User->new(
     name     => 'boo',
     password => 'baz',
     articles => [{title => 'hallo', tags => {name => 'good'}}]
-);
+)->create;
 
 my @users = User->find_objects(where => ['articles.tags.name' => 'good']);
 is(@users, 1);

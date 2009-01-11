@@ -4,14 +4,14 @@ use lib 't/lib';
 
 use User;
 
-my $u = User->create(name => 'foo', password => 'boo');
+my $u = User->new(name => 'foo', password => 'boo')->create;
 
-is(User->delete(id => $u->column('id')), 1);
+is(User->new(id => $u->column('id'))->delete, 1);
 
-is(User->delete(id => 345345), '0E0');
+ok(not defined User->new(id => 345345)->delete);
 
-eval { User->delete(); };
+eval { User->new->delete; };
 ok($@);
 
-$u = User->create();
-ok($u->delete());
+$u = User->new->create;
+ok($u->delete);

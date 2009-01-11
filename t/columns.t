@@ -4,7 +4,7 @@ use lib 't/lib';
 
 use User;
 
-my $u = User->new();
+my $u = User->new;
 
 ok($u);
 is_deeply([$u->columns], []);

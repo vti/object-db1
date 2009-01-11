@@ -7,7 +7,7 @@ use User;
 
 User->delete_objects(where => [name => 'foo']);
 
-my $u = User->create(name => 'foo');
+my $u = User->new(name => 'foo')->create;
 $u->create_related('articles', title => 'boo');
 $u->create_related('articles', title => 'foo');
 

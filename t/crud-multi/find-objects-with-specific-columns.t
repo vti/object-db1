@@ -6,7 +6,7 @@ use User;
 
 User->delete_objects;
 
-User->create(name => 'foo', password => 'bar');
+User->new(name => 'foo', password => 'bar')->create;
 
 my @users = User->find_objects(columns => 'name');
 is(@users, 1);

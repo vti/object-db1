@@ -8,10 +8,10 @@ use UserAdmin;
 Admin->delete_objects;
 UserAdmin->delete_objects;
 
-my $user = Admin->create(name => 'foo', password => 'bar');
+my $user = Admin->new(name => 'foo', password => 'bar')->create;
 $user->create_related('user_admin', beard => 1);
 
-$user = Admin->create(name => 'boo', password => 'baz');
+$user = Admin->new(name => 'boo', password => 'baz')->create;
 $user->create_related('user_admin', beard => 0);
 
 my @users = Admin->find_objects(where => ['user_admin.beard' => 1]);

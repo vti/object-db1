@@ -4,9 +4,9 @@ use lib 't/lib';
 
 use User;
 
-my $u_ = User->create(name => 'foo', password => 'boo');
+my $u_ = User->new(name => 'foo', password => 'boo')->create;
 
-$u = User->find(id => $u_->column('id'));
+$u = User->new(id => $u_->column('id'))->find;
 is($u->column('id'), $u_->column('id'));
 is($u->column('name'), 'foo');
 is($u->column('password'), 'boo');
@@ -17,7 +17,7 @@ is($u->column('id'), $u_->column('id'));
 is($u->column('name'), 'foo');
 is($u->column('password'), 'boo');
 
-$u = User->find(id => undef);
-is($u->not_found, 1);
+$u = User->new(id => undef)->find;
+ok(not defined $u);
 
 User->delete_objects;

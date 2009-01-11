@@ -37,9 +37,9 @@ sub update {
     return $self unless $self->is_modified;
 
     my @pk = $self->meta->primary_keys;
-    my @pk_values = map { $self->column($_) } @pk;
+    my @pk_values = map { $_ => $self->column($_) } @pk;
 
-    my $initial = $self->meta->class->select(@pk_values);
+    my $initial = $self->meta->class->new(@pk_values)->find;
     return $self unless $initial;
 
     $self->column(revision => $self->column('revision') + 1);

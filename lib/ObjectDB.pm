@@ -12,7 +12,7 @@ use ObjectDB::Iterator;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
-__PACKAGE__->attr([qw/ is_in_db is_modified not_found /], default => 0);
+__PACKAGE__->attr([qw/ is_in_db is_modified /], default => 0);
 __PACKAGE__->attr('iterator');
 __PACKAGE__->attr('_relationships', default => sub { {} });
 
@@ -159,9 +159,9 @@ sub _process_related {
 }
 
 sub begin {
-    my $class = shift;
+    my $self = shift;
 
-    my $dbh = $class->init_db;
+    my $dbh = $self->init_db;
 
     my $sql = ObjectDB::SQLBuilder->build('begin')->merge(@_);
 
@@ -171,9 +171,9 @@ sub begin {
 }
 
 sub rollback {
-    my $class = shift;
+    my $self = shift;
 
-    my $dbh = $class->init_db;
+    my $dbh = $self->init_db;
 
     my $sql = ObjectDB::SQLBuilder->build('rollback');
 
@@ -183,9 +183,9 @@ sub rollback {
 }
 
 sub commit {
-    my $class = shift;
+    my $self = shift;
 
-    my $dbh = $class->init_db;
+    my $dbh = $self->init_db;
 
     my $sql = ObjectDB::SQLBuilder->build('commit');
 
@@ -195,12 +195,9 @@ sub commit {
 }
 
 sub create {
-    my $class = shift;
-    my $self = ref $class ? $class : $class->new(@_);
+    my $self = shift;
 
     return $self if $self->is_in_db;
-
-    return $self if $self->can('is_valid') && !$self->is_valid;
 
     my $dbh = $self->init_db;
 
@@ -231,8 +228,7 @@ sub create {
 }
 
 sub find {
-    my $class = shift;
-    my $self = ref $class ? $class : $class->new(@_);
+    my $self = shift;
 
     my @columns;
     foreach my $name ($self->columns) {
@@ -241,9 +237,7 @@ sub find {
               || $self->meta->is_unique_key($name);
     }
 
-    return $self if $self->can('is_valid') && !$self->is_valid(@columns);
-
-    my $dbh = $class->init_db;
+    my $dbh = $self->init_db;
 
     my $sql = ObjectDB::SQLBuilder->build('select');
 
@@ -255,10 +249,7 @@ sub find {
 
     my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
 
-    unless (keys %$hash_ref) {
-        $self->not_found(1);
-        return $self;
-    }
+    return unless keys %$hash_ref;
 
     $self->init(%$hash_ref);
     $self->is_modified(0);
@@ -267,26 +258,12 @@ sub find {
     return $self;
 }
 
-sub select {
-    my $class = shift;
-
-    my @pk = $class->meta->primary_keys();
-
-    if (@_ >= @pk) {
-        $class->find(map { $_ => shift @_ } @pk);
-    } else {
-        die 'not enough primary keys';
-    }
-}
-
 sub update {
     my $self = shift;
 
     die 'must be called on instance' unless ref $self;
 
     return $self unless $self->is_modified;
-
-    return $self if $self->can('is_valid') && !$self->is_valid;
 
     my $dbh = $self->init_db;
 
@@ -310,21 +287,14 @@ sub update {
 }
 
 sub delete {
-    my $class = shift;
-    my $self = ref $class ? $class : $class->new();
+    my $self = shift;
 
-    return $self if $self->can('is_valid') && !$self->is_valid($self->columns);
-
-    my %params;
-    if (ref $class) {
-        %params = map { $_ => $self->column($_) } $self->meta->primary_keys;
-    } else {
-        die 'query params are required' unless @_;
-
-        %params = @_;
-    }
+    my %params = map { $_ => $self->column($_) } $self->meta->primary_keys;
 
     my @names = keys %params;
+
+    die "specify primary keys or at least one unique key"
+      unless grep {defined $params{$_}} @names;
 
     foreach my $name (@names) {
         die "$name is not primary key or unique column"
@@ -332,17 +302,20 @@ sub delete {
               || $self->meta->is_unique_key($name);
     }
 
-    my $dbh = $class->init_db;
+    my $dbh = $self->init_db;
 
     my $sql =
-      ObjectDB::SQLBuilder->build('delete')->table($class->meta->table)
+      ObjectDB::SQLBuilder->build('delete')->table($self->meta->table)
       ->where([%params]);
 
     warn $sql if DEBUG;
 
     my $sth = $dbh->prepare("$sql");
 
-    return $sth->execute(@{$sql->bind});
+    my $rv = $sth->execute(@{$sql->bind});
+    return if $rv eq '0E0';
+
+    return $rv;
 }
 
 sub find_objects {
@@ -578,15 +551,15 @@ sub create_related {
           %{$relationship->{map_class}->meta->relationships->{$map_to}
               ->{map}};
 
-        my $object = $relationship->class->find(@_);
-        if ($object->not_found) {
-            $object = $relationship->class->create(@_);
+        my $object = $relationship->class->new(@_)->find;
+        unless ($object) {
+            $object = $relationship->class->new(@_)->create;
         }
 
-        $relationship->{map_class}->create(
+        $relationship->{map_class}->new(
             $from_foreign_pk => $self->column($from_pk),
             $to_foreign_pk   => $object->column($to_pk)
-        );
+        )->create;
 
         return $object;
     } else {
@@ -600,9 +573,9 @@ sub create_related {
         }
 
         if (@_ == 1 && ref $_[0]) {
-            return $relationship->class->create(%{$_[0]->to_hash}, @params);
+            return $relationship->class->new(%{$_[0]->to_hash}, @params)->create;
         } else {
-            return $relationship->class->create(@params, @_);
+            return $relationship->class->new(@params, @_)->create;
         }
     }
 }

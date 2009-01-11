@@ -4,9 +4,9 @@ use lib 't/lib';
 
 use WikiSimple;
 
-my $wiki = WikiSimple->create(title => 'hello', user_id => 1);
+my $wiki = WikiSimple->new(title => 'hello', user_id => 1)->create;
 
-$wiki = WikiSimple->select($wiki->column('id'));
+$wiki = WikiSimple->new(id => $wiki->column('id'))->find;
 ok($wiki);
 
 is($wiki->is_modified, 0);

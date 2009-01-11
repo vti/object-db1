@@ -6,10 +6,10 @@ use User;
 
 User->delete_objects;
 
-User->create(name => 'foo', password => 'bar');
+User->new(name => 'foo', password => 'bar')->create;
 is(User->count_objects, 1);
 
-User->create(name => 'oof', password => 'bar');
+User->new(name => 'oof', password => 'bar')->create;
 is(User->count_objects, 2);
 
 is(User->count_objects(where => [name => 'vti']), 0);

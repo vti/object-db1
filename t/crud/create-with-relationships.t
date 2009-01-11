@@ -7,8 +7,10 @@ use Tag;
 
 Tag->delete_objects;
 
-my $article =
-  Article->create(title => 'foo', tags => [{name => 'one'}, {name => 'two'}]);
+my $article = Article->new(
+    title => 'foo',
+    tags  => [{name => 'one'}, {name => 'two'}]
+)->create;
 
 my @tags = $article->find_related('tags');
 is(scalar @tags, 2);

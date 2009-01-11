@@ -4,8 +4,10 @@ use lib 't/lib';
 
 use User;
 
-my $user = User->create(name => 'foo');
+my $user = User->new(name => 'foo')->create;
 ok($user->column('id'));
 
-$user = $user->clone;
-ok(not defined $user->column('id'));
+my $user2 = $user->clone;
+ok(not defined $user2->column('id'));
+
+$user->delete;

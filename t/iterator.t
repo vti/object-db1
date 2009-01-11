@@ -7,8 +7,8 @@ use User;
 
 User->delete_objects;
 
-User->create(name => 'foo', password => 'bar');
-User->create(name => 'bar', password => 'foo');
+User->new(name => 'foo', password => 'bar')->create;
+User->new(name => 'bar', password => 'foo')->create;
 
 my $dbh = User->init_db;
 my $sth = $dbh->prepare("SELECT * FROM user");

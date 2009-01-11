@@ -31,14 +31,14 @@ is($u->column('password'), 'bar');
 ok($u->create);
 $u->delete;
 
-$u = User->create;
+$u = User->new->create;
 ok($u);
 ok($u->column('id'));
 ok(not defined $u->column('name'));
 ok(not defined $u->column('password'));
 $u->delete;
 
-$u = User->create(name => 'bar', password => 'foo');
+$u = User->new(name => 'bar', password => 'foo')->create;
 ok($u->column('id'));
 is($u->column('name'), 'bar');
 is($u->column('password'), 'foo');

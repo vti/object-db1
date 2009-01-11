@@ -8,7 +8,7 @@ User->delete_objects;
 
 User->begin(behavior => 'immediate');
 
-User->create(name => 'foo');
+User->new(name => 'foo')->create;
 
 is(User->count_objects, 1);
 
@@ -19,7 +19,7 @@ is(User->count_objects, 0);
 
 User->begin(behavior => 'immediate');
 
-User->create(name => 'foo');
+User->new(name => 'foo')->create;
 
 is(User->count_objects, 1);
 

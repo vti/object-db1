@@ -10,11 +10,11 @@ Article->delete_objects;
 Tag->delete_objects;
 ArticleTagMap->delete_objects;
 
-my $article = Article->create(title => 'foo');
+my $article = Article->new(title => 'foo')->create;
 $article->create_related('tags', name => 'one');
 $article->create_related('tags', name => 'two');
 
-my $article2 = Article->create(title => 'boo');
+my $article2 = Article->new(title => 'boo')->create;
 $article2->create_related('tags', name => 'one');
 $article2->create_related('tags', name => 'two');
 

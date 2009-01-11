@@ -10,10 +10,10 @@ Comment->delete_objects;
 Article->delete_objects;
 Podcast->delete_objects;
 
-my $article = Article->create(title => 'boo');
+my $article = Article->new(title => 'boo')->create;
 my $article_comment = $article->create_related('comments', content => 'cool');
 
-my $podcast = Podcast->create(title => 'boo');
+my $podcast = Podcast->new(title => 'boo')->create;
 my $podcast_comment = $podcast->create_related('comments', content => 'sucks');
 
 is($article_comment->column('master_id'), $article->column('id'));

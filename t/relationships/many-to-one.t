@@ -5,14 +5,14 @@ use lib 't/lib';
 use Article;
 use User;
 
-my $u = User->create(name => 'root');
+my $u = User->new(name => 'root')->create;
 
 Article->delete_objects;
 
-my $article = Article->create(title => 'foo');
+my $article = Article->new(title => 'foo')->create;
 ok(not defined $article->find_related('user'));
 
-$article = Article->create(user_id => $u->column('id'), title => 'boo');
+$article = Article->new(user_id => $u->column('id'), title => 'boo')->create;
 my $user = $article->find_related('user');
 is($user->column('id'), $u->column('id'));
 is($user->column('name'), 'root');

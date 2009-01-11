@@ -8,9 +8,9 @@ use Tag;
 Tag->delete_objects;
 Article->delete_objects;
 
-Article->create(title => 'foo', tags => [{name => 'rab'}, {name => 'bar'}]);
+Article->new(title => 'foo', tags => [{name => 'rab'}, {name => 'bar'}])->create;
 
-Article->create(title => 'boo', tags => [{name => 'baz'}, {name => 'zab'}]);
+Article->new(title => 'boo', tags => [{name => 'baz'}, {name => 'zab'}])->create;
 
 my @articles = Article->find_objects(where => ['tags.name' => 'rab']);
 is(@articles, 1);

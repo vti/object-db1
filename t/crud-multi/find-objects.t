@@ -11,7 +11,7 @@ is(@users, 0);
 
 is_deeply([], [User->find_objects]);
 
-User->create(name => 'foo', password => 'bar');
+User->new(name => 'foo', password => 'bar')->create;
 
 @users = User->find_objects;
 is(@users, 1);
@@ -23,8 +23,8 @@ while (my $u = $users->next) {
     is($u->column('name'), 'foo');
 }
 
-User->create(name => 'root', password => 'boo');
-User->create(name => 'boot', password => 'booo');
+User->new(name => 'root', password => 'boo')->create;
+User->new(name => 'boot', password => 'booo')->create;
 
 my $user = User->find_objects(where => [name => 'root'], single => 1);
 is($user->column('name'), 'root');

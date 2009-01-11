@@ -6,7 +6,7 @@ use User;
 
 User->delete_objects;
 
-User->create(name => 'foo', password => 'bar');
+User->new(name => 'foo', password => 'bar')->create;
 
 User->update_objects(where => [name => 'foo'], bind => [qw/ haha xexe /]);
 

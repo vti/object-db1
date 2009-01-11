@@ -5,7 +5,7 @@ use lib 't/lib';
 use Article;
 use User;
 
-my $u = User->create(name => 'foo');
+my $u = User->new(name => 'foo')->create;
 $u->create_related('articles', title => 'foo');
 
 my $iterator = $u->related('articles');

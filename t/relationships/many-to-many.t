@@ -8,15 +8,15 @@ use ArticleTagMap;
 
 Tag->delete_objects;
 
-my $article = Article->create(title => 'foo');
-my $tag = Tag->create(name => 'shit');
+my $article = Article->new(title => 'foo')->create;
+my $tag = Tag->new(name => 'shit')->create;
 
 ArticleTagMap->delete_objects;
 
-my $map = ArticleTagMap->create(
+my $map = ArticleTagMap->new(
     article_id => $article->column('id'),
     tag_id     => $tag->column('id')
-);
+)->create;
 
 my $map_article = $map->find_related('article');
 is($map_article->column('title'), 'foo');
@@ -36,7 +36,7 @@ is($article->count_related('tags'), 1);
 $article->delete_related('tags');
 is($article->count_related('tags'), 0);
 
-Tag->create(name => 'more');
+Tag->new(name => 'more')->create;
 
 is(Tag->count_objects, 2);
 
