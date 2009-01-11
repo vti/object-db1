@@ -1,4 +1,4 @@
-use Test::More tests => 8;
+use Test::More tests => 10;
 
 use lib 't/lib';
 
@@ -19,3 +19,7 @@ is(@users, 1);
 is($users[0]->column('id'), 1);
 is($users[0]->column('name'), 'foo');
 is($users[0]->column('password'), 'bar');
+
+@users = User->find_objects(columns => [{name => \'COUNT(*)', as => 'count'}]);
+is($users[0]->column('id'), 1);
+is($users[0]->column('count'), 1);

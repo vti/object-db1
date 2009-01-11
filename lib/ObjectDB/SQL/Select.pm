@@ -7,7 +7,7 @@ use base 'ObjectDB::SQL';
 
 __PACKAGE__->attr([qw/ group_by having order_by limit offset /], chained => 1);
 __PACKAGE__->attr([qw/ _sources _columns /], default => sub {[]}, chained => 1);
-__PACKAGE__->attr('where', chained => 1);
+__PACKAGE__->attr([qw/ where_logic where /], chained => 1);
 
 sub source {
     my $self = shift;
@@ -33,7 +33,19 @@ sub columns {
         return $self;
     }
 
-    return @{$self->_sources->[0]->{columns}};
+    my @column_names = ();
+
+    foreach my $col (@{$self->_sources->[0]->{columns}}) {
+        if (ref $col eq 'SCALAR') {
+            $col = $$col;
+        } elsif (ref $col eq 'HASH') {
+            ($col) = $col->{as};
+        }
+
+        push @column_names, $col;
+    }
+
+    return @column_names;
 }
 
 sub to_string {
@@ -51,20 +63,30 @@ sub to_string {
 
             my @columns;
             foreach my $col (@{$source->{columns}}) {
-                if (ref $col) {
+                if (ref $col eq 'SCALAR') {
                     push @columns, $$col;
                 } else {
                     my $col_full = $col;
 
-                    if ($col_full =~ s/^(\w+)\.//) {
-                        $col_full = "$1.`$col_full`"
-                    } elsif ($need_prefix) {
-                        $col_full = $source->{name} . ".`$col_full`"
-                    } else {
-                        $col_full = "`$col_full`";
+                    my $as;
+                    if (ref $col_full eq 'HASH') {
+                        $as = $col_full->{as};
+                        $col_full = $col_full->{name};
                     }
 
-                    push @columns, $col_full;
+                    if (ref $col_full eq 'SCALAR') {
+                        $col_full = $$col_full;
+                    } else {
+                        if ($col_full =~ s/^(\w+)\.//) {
+                            $col_full = "$1.`$col_full`"
+                        } elsif ($need_prefix) {
+                            $col_full = $source->{name} . ".`$col_full`"
+                        } else {
+                            $col_full = "`$col_full`";
+                        }
+                    }
+
+                    push @columns, $as ? "$col_full AS $as" : $col_full;
                 }
             }
 

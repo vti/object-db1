@@ -53,6 +53,9 @@ sub init {
         }
     }
 
+    # fake columns
+    $self->{_columns}->{$_} = $values{$_} foreach (keys %values);
+
     $self->is_modified(1);
 
     return $self;
@@ -143,7 +146,7 @@ sub _process_related {
                     } elsif (ref $rel_values eq 'HASH') {
                         $objects = [$rel_values];
                     } else {
-                        die 'wrong params';
+                        die "wrong params when setting '$rel' relationship: $rel_values";
                     }
 
                     foreach my $object (@$objects) {
@@ -254,17 +257,16 @@ sub update {
     my %params = map { $_ => $self->column($_) } $self->meta->primary_keys;
 
     my @columns = grep { !$self->meta->is_primary_key($_)} $self->meta->columns;
+    my @values = map { $self->column($_) } @columns;
 
     my $sql =
       ObjectDB::SQLBuilder->build('update')->table($self->meta->table)
-      ->columns(\@columns)->where([%params]);
+      ->columns(\@columns)->bind(\@values)->where([%params]);
 
     warn $sql if DEBUG;
 
-    my @values = map { $self->column($_) } @columns;
-
     my $sth = $dbh->prepare("$sql");
-    my $rv = $sth->execute(@values, @{$sql->bind});
+    my $rv = $sth->execute(@{$sql->bind});
 
     $self->_process_related;
 
@@ -364,6 +366,7 @@ sub find_objects {
         my $results = $sth->fetchall_arrayref;
         #use Data::Dumper;
         #warn Dumper $results;
+        #warn Dumper $sql->columns;
         return unless $results && @$results;
 
         my @objects;
@@ -476,7 +479,12 @@ sub _load_relationship {
         die "proxy_key is required for $name" unless $proxy_key;
 
         $name = $self->column($proxy_key);
+
+        die "proxy_key '$proxy_key' is empty" unless $name;
+
         $relationship = $self->meta->relationships->{$name};
+
+        die "unknown relatioship $name" unless $relationship;
     }
 
     my $class;
@@ -825,7 +833,8 @@ sub _resolve_columns {
 sub to_hash {
     my $self = shift;
 
-    my @columns = $self->columns;
+    #my @columns = $self->columns;
+    my @columns = keys %{$self->{_columns}};
 
     my $hash = {};
     foreach my $key (@columns) {

@@ -1,9 +1,15 @@
-use Test::More tests => 12;
+use Test::More tests => 15;
 
 use ObjectDB::SQLBuilder;
 
 my $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns('foo')->where([id => 2]);
 is("$sql", "SELECT `foo` FROM `foo` WHERE (`id` = ?)");
+
+$sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns({name => 'foo', as => 'bar'})->where([id => 2]);
+is("$sql", "SELECT `foo` AS bar FROM `foo` WHERE (`id` = ?)");
+
+$sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns({name => \'foo', as => 'bar'})->where([id => 2]);
+is("$sql", "SELECT foo AS bar FROM `foo` WHERE (`id` = ?)");
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns('foo')->where([id => 2])->source('foo');
 is("$sql", "SELECT `foo` FROM `foo` WHERE (`id` = ?)");
@@ -59,3 +65,11 @@ $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')
     }
 )->columns(qw/ foo bar /);
 is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar");
+
+$sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
+    {   join       => 'inner',
+        name       => 'table3',
+        constraint => 'table1.foo=table2.bar'
+    }
+)->columns(qw/ foo bar /)->where(['table3.foo' => 1]);
+is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar WHERE (table3.`foo` = ?)");
