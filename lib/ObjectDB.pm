@@ -489,24 +489,6 @@ sub _load_relationship {
         die "unknown relatioship $name" unless $relationship;
     }
 
-    my $class;
-
-    if ($relationship->{type} eq 'many to many') {
-        $class = $relationship->{map_class};
-        unless ($class->can('isa')) {
-            eval "require $class;";
-        }
-
-        $relationship->{class} =
-          $class->meta->relationships->{$relationship->{map_to}}->class;
-    }
-
-    $class = $relationship->class;
-
-    unless ($class->can('isa')) {
-        eval "require $class;";
-    }
-
     return $relationship;
 }
 
@@ -738,7 +720,7 @@ sub delete_related {
         my $map_to = $relationship->{map_to};
 
         my ($to, $from) =
-          %{$relationship->{map_class}->meta->relationships->{$map_from}
+          %{$relationship->map_class->meta->relationships->{$map_from}
               ->{map}};
 
         push @{$params{where}}, ($to => $self->column($from));
@@ -821,17 +803,15 @@ sub _resolve_with {
 
     my ($sql, $with) = @_;
 
-    if (my $rel = $class->meta->relationships->{$with}) {
-        if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
-            $sql->source($rel->to_source);
-        } else {
-            die $rel->type . ' is not supported';
-        }
+    my $rel = $class->_load_relationship($with);
 
-        $sql->columns($rel->class->meta->columns);
+    if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
+        $sql->source($rel->to_source);
     } else {
-        die "unknown relatioship '$rel'";
+        die $rel->type . ' is not supported';
     }
+
+    $sql->columns($rel->class->meta->columns);
 }
 
 sub _resolve_columns {
