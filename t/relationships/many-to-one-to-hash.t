@@ -18,11 +18,12 @@ my $article = $articles->next;
 
 is_deeply(
     $article->to_hash,
-    {   title   => 'foo',
-        name    => '',
-        user_id => $u->column('id'),
-        id      => $article->column('id'),
-        user    => {
+    {   title       => 'foo',
+        name        => '',
+        category_id => undef,
+        user_id     => $u->column('id'),
+        id          => $article->column('id'),
+        user        => {
             id       => $u->column('id'),
             name     => 'foo',
             password => ''

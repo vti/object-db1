@@ -7,7 +7,7 @@ use base 'DB';
 
 __PACKAGE__->meta(
     table          => 'article',
-    columns        => [qw/ id user_id title name /],
+    columns        => [qw/ id category_id user_id title name /],
     primary_keys   => ['id'],
     auto_increment => 'id',
 
@@ -16,6 +16,11 @@ __PACKAGE__->meta(
             type  => 'many to one',
             class => 'User',
             map   => {user_id => 'id'}
+        },
+        category => {
+            type  => 'many to one',
+            class => 'Category',
+            map   => {category_id => 'id'}
         },
         tags => {
             type      => 'many to many',

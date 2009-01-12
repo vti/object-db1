@@ -783,14 +783,16 @@ sub _map_row_to_object {
     my $object = $o ? $o->init(%values) : $class->new(%values);
 
     if ($with) {
-        my $relationship = $object->meta->relationships->{$with};
+        foreach my $name (ref $with eq 'ARRAY' ? @$with : $with) {
+            my $relationship = $object->meta->relationships->{$name};
 
-        if ($relationship->{type} eq 'many to one' ||
-            $relationship->{type} eq 'one to one') {
-            %values = map { $_ => shift @$row } $relationship->class->meta->columns;
-            $object->_relationships->{$with} = $relationship->class->new(%values);
-        } else {
-            die 'not supported';
+            if ($relationship->{type} eq 'many to one' ||
+                $relationship->{type} eq 'one to one') {
+                %values = map { $_ => shift @$row } $relationship->class->meta->columns;
+                $object->_relationships->{$name} = $relationship->class->new(%values);
+            } else {
+                die 'not supported';
+            }
         }
     }
     
@@ -803,15 +805,17 @@ sub _resolve_with {
 
     my ($sql, $with) = @_;
 
-    my $rel = $class->_load_relationship($with);
+    foreach my $name (ref $with eq 'ARRAY' ? @$with : $with) {
+        my $rel = $class->_load_relationship($name);
 
-    if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
-        $sql->source($rel->to_source);
-    } else {
-        die $rel->type . ' is not supported';
+        if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
+            $sql->source($rel->to_source);
+        } else {
+            die $rel->type . ' is not supported';
+        }
+
+        $sql->columns($rel->class->meta->columns);
     }
-
-    $sql->columns($rel->class->meta->columns);
 }
 
 sub _resolve_columns {

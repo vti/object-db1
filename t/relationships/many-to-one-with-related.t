@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 use lib 't/lib';
 
@@ -29,4 +29,8 @@ is($article->related('user')->column('name'), 'foo');
 
 
 $article = Article->find_objects(with => 'user', single => 1);
+is($article->related('user')->column('name'), 'foo');
+
+
+$article = Article->find_objects(with => ['user', 'category'], single => 1);
 is($article->related('user')->column('name'), 'foo');

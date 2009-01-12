@@ -6,11 +6,21 @@ my $dbh = DBI->connect("dbi:SQLite:table.db");
 ok($dbh);
 
 $dbh->do(<<"");
+DROP TABLE IF EXISTS `category`;
+
+$dbh->do(<<"");
+CREATE TABLE `category` (
+ `id` INTEGER PRIMARY KEY,
+ `title` varchar(40) default ''
+);
+
+$dbh->do(<<"");
 DROP TABLE IF EXISTS `article`;
 
 $dbh->do(<<"");
 CREATE TABLE `article` (
  `id` INTEGER PRIMARY KEY,
+ `category_id` INTEGER,
  `user_id` INTEGER,
  `title` varchar(40) default '',
  `name` varchar(40) default ''
