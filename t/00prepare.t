@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS `category`;
 $dbh->do(<<"");
 CREATE TABLE `category` (
  `id` INTEGER PRIMARY KEY,
+ `user_id` INTEGER,
  `title` varchar(40) default ''
 );
 

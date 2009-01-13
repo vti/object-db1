@@ -796,12 +796,23 @@ sub _map_row_to_object {
 
     if ($with) {
         foreach my $rel_info (@$with) {
-            my $relationship = $object->meta->relationships->{$rel_info->{name}};
+            my $parent_object = $object;
+
+            if ($rel_info->{subwith}) {
+                foreach my $subwith (@{$rel_info->{subwith}}) {
+                    $parent_object = $parent_object->_relationships->{$subwith};
+                    die "load $subwith first" unless $parent_object;
+                }
+            }
+
+            my $relationship = $parent_object->meta->relationships->{$rel_info->{name}};
 
             if ($relationship->{type} eq 'many to one' ||
                 $relationship->{type} eq 'one to one') {
                 %values = map { $_ => shift @$row } @{$rel_info->{columns}};
-                $object->_relationships->{$rel_info->{name}} = $relationship->class->new(%values);
+
+                my $rel_object = $relationship->class->new(%values);
+                $parent_object->_relationships->{$rel_info->{name}} = $rel_object;
             } else {
                 die 'not supported';
             }
@@ -822,25 +833,48 @@ sub _resolve_with {
             $rel_info = {name => $rel_info};
         }
 
-        my $rel = $class->_load_relationship($rel_info->{name});
+        my $relationship;
+        my $relationships = $class->meta->relationships;
+        my $last = 0;
+        my $name;
+        while (1) {
+            my $info;
+            if ($rel_info->{name} =~ s/^(\w+)\.//) {
+                $name = $1;
 
-        if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
-            $sql->source($rel->to_source);
-        } else {
-            die $rel->type . ' is not supported';
+                $rel_info->{subwith} ||= [];
+                push @{$rel_info->{subwith}}, $name;
+            } else {
+                $name = $rel_info->{name};
+                $last = 1;
+            }
+
+            $relationship = $relationships->{$name};
+
+            if ($relationship->type eq 'many to one' || $relationship->type eq 'one to one') {
+                $sql->source($relationship->to_source);
+            } else {
+                die $relationship->type . ' is not supported';
+            }
+
+            if ($last) {
+                my @columns;
+                if ($info->{columns}) {
+                    $info->{columns} = [$rel_info->{columns}]
+                      unless ref $rel_info->{columns} eq 'ARRAY';
+
+                    unshift @{$rel_info->{columns}}, $relationship->class->meta->primary_keys;
+                } else {
+                    $rel_info->{columns} = [$relationship->class->meta->columns];
+                }
+
+                $sql->columns(@{$rel_info->{columns}});
+
+                last;
+            } else {
+                $relationships = $relationship->class->meta->relationships;
+            }
         }
-
-        my @columns;
-        if ($rel_info->{columns}) {
-            $rel_info->{columns} = [$rel_info->{columns}]
-              unless ref $rel_info->{columns} eq 'ARRAY';
-
-            unshift @{$rel_info->{columns}}, $rel->class->meta->primary_keys;
-        } else {
-            $rel_info->{columns} = [$rel->class->meta->columns];
-        }
-
-        $sql->columns(@{$rel_info->{columns}});
     }
 }
 
