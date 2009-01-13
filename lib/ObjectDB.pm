@@ -357,7 +357,8 @@ sub find_objects {
     my $page_size = delete $params{page_size} || 10;
 
     unless ($single) {
-        if ($page && $page =~ m/[0-9]+/) {
+        if (defined $page) {
+            $page = 1 unless $page =~ m/[0-9]+/;
             $sql->offset(($page - 1) * $page_size);
             $sql->limit($page_size);
         }

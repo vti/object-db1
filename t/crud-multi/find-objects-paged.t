@@ -1,4 +1,4 @@
-use Test::More tests => 8;
+use Test::More tests => 9;
 
 use lib 't/lib';
 
@@ -13,6 +13,9 @@ foreach my $i (1 .. 11) {
     Article->new(title => $i)->create;
 }
 
+@articles = Article->find_objects(page => 0, page_size => 10);
+is(@articles, 10);
+
 @articles = Article->find_objects(page => 1, page_size => 10);
 is(@articles, 10);
 
@@ -23,7 +26,7 @@ is(@articles, 10);
 is(@articles, 0);
 
 @articles = Article->find_objects(page => 'a', page_size => 10);
-is(@articles, 11);
+is(@articles, 10);
 
 @articles = Article->find_objects(page => 2, page_size => 5);
 is(@articles, 5);
