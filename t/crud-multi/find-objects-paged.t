@@ -1,4 +1,4 @@
-use Test::More tests => 6;
+use Test::More tests => 8;
 
 use lib 't/lib';
 
@@ -9,8 +9,8 @@ Article->delete_objects;
 my @articles = Article->find_objects;
 is(@articles, 0);
 
-foreach (1 .. 11) {
-    Article->new(title => 'foo', content => $_)->create;
+foreach my $i (1 .. 11) {
+    Article->new(title => $i)->create;
 }
 
 @articles = Article->find_objects(page => 1, page_size => 10);
@@ -27,3 +27,7 @@ is(@articles, 11);
 
 @articles = Article->find_objects(page => 2, page_size => 5);
 is(@articles, 5);
+
+@articles = Article->find_objects(page => 2, page_size => 5, single => 1);
+is(@articles, 1);
+is($articles[0]->column('title'), 1);
