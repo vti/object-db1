@@ -114,7 +114,13 @@ sub to_string {
 
     $query .= ' HAVING ' . $self->having if $self->having;
 
-    $query .= ' ORDER BY ' . $self->order_by if $self->order_by;
+    if (my $order_by = $self->order_by) {
+        if ($default_prefix && $order_by !~ m/^\w+\./) {
+            $order_by = $default_prefix . '.' . $order_by;
+        }
+
+        $query .= ' ORDER BY ' . $order_by;
+    }
 
     $query .= ' LIMIT ' . $self->limit if $self->limit;
 

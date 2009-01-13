@@ -1,4 +1,4 @@
-use Test::More tests => 16;
+use Test::More tests => 18;
 
 use ObjectDB::SQLBuilder;
 
@@ -28,7 +28,6 @@ $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns(qw/ hello b
   ->where([id => 2])->group_by('foo')->having('foo')->order_by('hello DESC')
   ->limit(2)->offset(1);
 is("$sql", "SELECT `hello`, `boo` FROM `foo` WHERE (`id` = ?) GROUP BY foo HAVING foo ORDER BY hello DESC LIMIT 2 OFFSET 1");
-
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns('foo')->where("1 > 2");
 is("$sql", 'SELECT `foo` FROM `foo` WHERE (1 > 2)');
@@ -81,3 +80,20 @@ $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')
     }
 )->columns(qw/ foo bar /)->where(['foo' => 1]);
 is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar WHERE (table1.`foo` = ?)");
+
+$sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
+    {   join       => 'inner',
+        name       => 'table3',
+        constraint => 'table1.foo=table2.bar'
+    }
+)->columns(qw/ foo bar /)->order_by('addtime');
+is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar ORDER BY table1.addtime");
+
+$sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
+    {   join       => 'inner',
+        name       => 'table3',
+        constraint => 'table1.foo=table2.bar'
+    }
+)->columns(qw/ foo bar /)->order_by('table2.addtime');
+is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar ORDER BY table2.addtime");
+
