@@ -353,6 +353,14 @@ sub find_objects {
       ObjectDB::SQLBuilder->build('select')->source($class->meta->table)
       ->columns(@columns);
 
+    my $page = delete $params{page};
+    my $page_size = delete $params{page_size} || 10;
+
+    if ($page && $page =~ m/[0-9]+/) {
+        $sql->offset(($page - 1) * $page_size);
+        $sql->limit($page_size);
+    }
+
     if (my $sources = delete $params{source}) {
         foreach my $source (@$sources) {
             $sql->source($source);
