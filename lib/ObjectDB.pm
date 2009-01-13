@@ -358,7 +358,7 @@ sub find_objects {
 
     unless ($single) {
         if (defined $page) {
-            $page = 1 unless $page =~ m/[0-9]+/;
+            $page = 1 unless $page =~ m/^[0-9]+$/o;
             $sql->offset(($page - 1) * $page_size);
             $sql->limit($page_size);
         }

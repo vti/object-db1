@@ -1,4 +1,4 @@
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 use lib 't/lib';
 
@@ -26,6 +26,9 @@ is(@articles, 10);
 is(@articles, 0);
 
 @articles = Article->find_objects(page => 'a', page_size => 10);
+is(@articles, 10);
+
+@articles = Article->find_objects(page => '9a', page_size => 10);
 is(@articles, 10);
 
 @articles = Article->find_objects(page => 2, page_size => 5);
