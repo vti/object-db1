@@ -372,6 +372,7 @@ sub find_objects {
 
     my $with;
     if ($with = delete $params{with}) {
+        $with = [$with] unless ref $with eq 'ARRAY';
         $class->_resolve_with($sql, $with);
     }
 
@@ -794,13 +795,13 @@ sub _map_row_to_object {
     my $object = $o ? $o->init(%values) : $class->new(%values);
 
     if ($with) {
-        foreach my $name (ref $with eq 'ARRAY' ? @$with : $with) {
-            my $relationship = $object->meta->relationships->{$name};
+        foreach my $rel_info (@$with) {
+            my $relationship = $object->meta->relationships->{$rel_info->{name}};
 
             if ($relationship->{type} eq 'many to one' ||
                 $relationship->{type} eq 'one to one') {
-                %values = map { $_ => shift @$row } $relationship->class->meta->columns;
-                $object->_relationships->{$name} = $relationship->class->new(%values);
+                %values = map { $_ => shift @$row } @{$rel_info->{columns}};
+                $object->_relationships->{$rel_info->{name}} = $relationship->class->new(%values);
             } else {
                 die 'not supported';
             }
@@ -816,8 +817,12 @@ sub _resolve_with {
 
     my ($sql, $with) = @_;
 
-    foreach my $name (ref $with eq 'ARRAY' ? @$with : $with) {
-        my $rel = $class->_load_relationship($name);
+    foreach my $rel_info (@$with) {
+        unless (ref $rel_info eq 'HASH') {
+            $rel_info = {name => $rel_info};
+        }
+
+        my $rel = $class->_load_relationship($rel_info->{name});
 
         if ($rel->type eq 'many to one' || $rel->type eq 'one to one') {
             $sql->source($rel->to_source);
@@ -825,7 +830,17 @@ sub _resolve_with {
             die $rel->type . ' is not supported';
         }
 
-        $sql->columns($rel->class->meta->columns);
+        my @columns;
+        if ($rel_info->{columns}) {
+            $rel_info->{columns} = [$rel_info->{columns}]
+              unless ref $rel_info->{columns} eq 'ARRAY';
+
+            unshift @{$rel_info->{columns}}, $rel->class->meta->primary_keys;
+        } else {
+            $rel_info->{columns} = [$rel->class->meta->columns];
+        }
+
+        $sql->columns(@{$rel_info->{columns}});
     }
 }
 
