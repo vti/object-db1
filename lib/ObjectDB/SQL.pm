@@ -60,6 +60,20 @@ sub _where_to_string {
 
                         $string .= "$key $op ?";
                         push @{$self->bind}, $val;
+                    }
+                    elsif (ref $value eq 'ARRAY') {
+                        $string .= "$key IN (";
+
+                        my $first = 1;
+                        foreach my $v (@$value) {
+                            $string .= ', ' unless $first;
+                            $string .= '?';
+                            $first = 0;
+
+                            push @{$self->bind}, $v;
+                        }
+
+                        $string .= ")";
                     } else {
                         $string .= "$key = ?";
                         push @{$self->bind}, $value;

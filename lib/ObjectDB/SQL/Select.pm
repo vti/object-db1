@@ -110,7 +110,13 @@ sub to_string {
         $query .= $self->_where_to_string($self->where, $default_prefix);
     }
 
-    $query .= ' GROUP BY ' . $self->group_by if $self->group_by;
+    if (my $group_by = $self->group_by) {
+        if ($default_prefix && $group_by !~ m/^\w+\./) {
+            $group_by = $default_prefix . '.' . $group_by;
+        }
+
+        $query .= ' GROUP BY ' . $group_by;
+    }
 
     $query .= ' HAVING ' . $self->having if $self->having;
 

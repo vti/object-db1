@@ -1,4 +1,4 @@
-use Test::More tests => 12;
+use Test::More tests => 14;
 
 use ObjectDB::SQLBuilder;
 
@@ -7,6 +7,10 @@ my $sql;
 $sql = ObjectDB::SQLBuilder->build('select')->source('table')->columns('foo')->where([id => 2, title => 'hello']);
 is("$sql", "SELECT `foo` FROM `table` WHERE (`id` = ? AND `title` = ?)");
 is_deeply($sql->bind, [qw/ 2 hello /]);
+
+$sql = ObjectDB::SQLBuilder->build('select')->source('table')->columns('foo')->where([id => [1, 2, 3]]);
+is("$sql", "SELECT `foo` FROM `table` WHERE (`id` IN (?, ?, ?))");
+is_deeply($sql->bind, [qw/ 1 2 3 /]);
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table')->columns('foo')->where([\'foo.id = 2', title => 'hello']);
 is("$sql", "SELECT `foo` FROM `table` WHERE (foo.id = 2 AND `title` = ?)");

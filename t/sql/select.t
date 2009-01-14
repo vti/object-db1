@@ -86,14 +86,14 @@ $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')
         name       => 'table3',
         constraint => 'table1.foo=table2.bar'
     }
-)->columns(qw/ foo bar /)->order_by('addtime');
-is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar ORDER BY table1.addtime");
+)->columns(qw/ foo bar /)->order_by('addtime')->group_by('foo');
+is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar GROUP BY table1.foo ORDER BY table1.addtime");
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
     {   join       => 'inner',
         name       => 'table3',
         constraint => 'table1.foo=table2.bar'
     }
-)->columns(qw/ foo bar /)->order_by('table2.addtime');
-is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar ORDER BY table2.addtime");
+)->columns(qw/ foo bar /)->order_by('table2.addtime')->group_by('table2.foo');
+is("$sql", "SELECT table3.`foo`, table3.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON table1.foo=table2.bar GROUP BY table2.foo ORDER BY table2.addtime");
 
