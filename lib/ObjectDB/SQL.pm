@@ -58,8 +58,12 @@ sub _where_to_string {
                     if (ref $value eq 'HASH') {
                         my ($op, $val) = %$value;
 
-                        $string .= "$key $op ?";
-                        push @{$self->bind}, $val;
+                        if (defined $val) {
+                            $string .= "$key $op ?";
+                            push @{$self->bind}, $val;
+                        } else {
+                            $string .= "$key IS $op NULL";
+                        }
                     }
                     elsif (ref $value eq 'ARRAY') {
                         $string .= "$key IN (";

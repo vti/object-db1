@@ -246,8 +246,9 @@ sub find {
       ->columns($self->meta->columns)
       ->where([map { $_ => $self->column($_) } @columns]);
 
-    my $with = $params{with};
-    if ($with) {
+    my $with;
+    if ($with = delete $params{with}) {
+        $with = [$with] unless ref $with eq 'ARRAY';
         $self->_resolve_with($sql, $with);
     }
 
