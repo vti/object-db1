@@ -20,7 +20,7 @@ is($u->column('id'),       $u_->column('id'));
 is($u->column('name'),     'foo');
 is($u->column('password'), 'boo');
 
-$u = User->new(id => undef)->find;
+$u = User->new(id => 999)->find;
 ok(not defined $u);
 
 User->delete_objects;

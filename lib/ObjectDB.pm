@@ -163,7 +163,9 @@ sub begin {
 
     my $dbh = $self->init_db;
 
-    my $sql = ObjectDB::SQLBuilder->build('begin')->merge(@_);
+    my $sql =
+      ObjectDB::SQLBuilder->build('begin')->merge(@_)
+      ->driver($dbh->{Driver}->{Name});
 
     warn "$sql" if DEBUG;
 
@@ -203,7 +205,7 @@ sub create {
 
     my $sql =
       ObjectDB::SQLBuilder->build('insert')->table($self->meta->table)
-      ->columns([$self->columns]);
+      ->columns([$self->columns])->driver($dbh->{Driver}->{Name});
 
     my @values = map { $self->column($_) } $self->columns;
 
@@ -359,7 +361,7 @@ sub find_objects {
 
     unless ($single) {
         if (defined $page) {
-            $page = 1 unless $page =~ m/^[0-9]+$/o;
+            $page = 1 unless $page && $page =~ m/^[0-9]+$/o;
             $sql->offset(($page - 1) * $page_size);
             $sql->limit($page_size);
         }

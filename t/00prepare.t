@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS `category`;
 
 $dbh->do(<<"");
 CREATE TABLE `category` (
- `id` INTEGER PRIMARY KEY,
+ `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `user_id` INTEGER,
  `title` varchar(40) default ''
 );
@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS `article`;
 
 $dbh->do(<<"");
 CREATE TABLE `article` (
- `id` INTEGER PRIMARY KEY,
+ `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `category_id` INTEGER,
  `user_id` INTEGER,
  `title` varchar(40) default '',
@@ -43,7 +43,7 @@ DROP TABLE IF EXISTS `podcast`;
 
 $dbh->do(<<"");
 CREATE TABLE `podcast` (
- `id` INTEGER PRIMARY KEY,
+ `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `user_id` INTEGER,
  `title` varchar(40) default ''
 );
@@ -53,7 +53,7 @@ DROP TABLE IF EXISTS `tag`;
 
 $dbh->do(<<"");
 CREATE TABLE `tag` (
- `id` INTEGER PRIMARY KEY,
+ `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `name` varchar(40) default ''
 );
 
@@ -85,7 +85,7 @@ DROP TABLE IF EXISTS `user`;
 
 $dbh->do(<<"");
 CREATE TABLE `user` (
- `id` INTEGER PRIMARY KEY,
+ `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `name` varchar(40) default '',
  `password` varchar(40) default '',
  UNIQUE(`name`)

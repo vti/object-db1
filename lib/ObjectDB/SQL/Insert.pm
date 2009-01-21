@@ -5,7 +5,7 @@ use warnings;
 
 use base 'ObjectDB::SQL';
 
-__PACKAGE__->attr([qw/ table driver /], chained => 1);
+__PACKAGE__->attr([qw/ table /], chained => 1);
 __PACKAGE__->attr('columns', default => sub { [] }, chained => 1);
 __PACKAGE__->attr('bind', default => sub { [] }, chained => 1);
 

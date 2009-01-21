@@ -7,6 +7,7 @@ use overload '""' => sub { shift->to_string }, fallback => 1;
 
 use base 'ObjectDB::Base';
 
+__PACKAGE__->attr(driver => (chained => 1));
 __PACKAGE__->attr([qw/ bind /], default => sub { [] }, chained => 1);
 __PACKAGE__->attr([qw/ _string _where_string /]);
 

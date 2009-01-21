@@ -14,7 +14,11 @@ sub to_string {
 
     $query .= 'BEGIN';
 
-    if ($self->behavior) {
+    if ($self->driver && $self->driver eq 'mysql') {
+        $query .= ' WORK';
+    }
+
+    if ($self->behavior && (!$self->driver || $self->driver eq 'SQLite')) {
         $query .= ' ';
         $query .= uc $self->behavior;
     }
