@@ -839,7 +839,6 @@ sub _resolve_with {
         my $last = 0;
         my $name;
         while (1) {
-            my $info;
             if ($rel_info->{name} =~ s/^(\w+)\.//) {
                 $name = $1;
 
@@ -860,8 +859,8 @@ sub _resolve_with {
 
             if ($last) {
                 my @columns;
-                if ($info->{columns}) {
-                    $info->{columns} = [$rel_info->{columns}]
+                if ($rel_info->{columns}) {
+                    $rel_info->{columns} = [$rel_info->{columns}]
                       unless ref $rel_info->{columns} eq 'ARRAY';
 
                     unshift @{$rel_info->{columns}}, $relationship->class->meta->primary_keys;
