@@ -14,7 +14,11 @@ ok($rel);
 
 is($rel->related_table, 'article');
 
-is_deeply($rel->to_source,
-    {name => 'article', join => 'left', constraint => 'article.user_id=user.id'}
+is_deeply(
+    $rel->to_source,
+    {   name       => 'article',
+        join       => 'left',
+        constraint => {'article.user_id' => 'user.id'}
+    }
 );
 

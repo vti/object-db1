@@ -78,9 +78,9 @@ sub to_string {
                         $col_full = $$col_full;
                     } else {
                         if ($col_full =~ s/^(\w+)\.//) {
-                            $col_full = "$1.`$col_full`"
+                            $col_full = "`$1`.`$col_full`"
                         } elsif ($need_prefix) {
-                            $col_full = $source->{name} . ".`$col_full`"
+                            $col_full = '`' . $source->{name} . "`.`$col_full`"
                         } else {
                             $col_full = "`$col_full`";
                         }
@@ -111,21 +111,44 @@ sub to_string {
     }
 
     if (my $group_by = $self->group_by) {
-        if ($default_prefix && $group_by !~ m/^\w+\./) {
-            $group_by = $default_prefix . '.' . $group_by;
+        if ($default_prefix) {
+            if ($group_by =~ s/^(\w+)\.//) {
+                $group_by = "`$1`.`$group_by`";
+            } else {
+                $group_by = "`$default_prefix`.`$group_by`";
+            }
+        } else {
+            $group_by = "`$group_by`";
         }
 
         $query .= ' GROUP BY ' . $group_by;
     }
 
-    $query .= ' HAVING ' . $self->having if $self->having;
+    $query .= ' HAVING `' . $self->having . '`' if $self->having;
 
     if (my $order_by = $self->order_by) {
-        if ($default_prefix && $order_by !~ m/^\w+\./) {
-            $order_by = $default_prefix . '.' . $order_by;
-        }
+        my @cols = split(/\s+/, $order_by);
 
-        $query .= ' ORDER BY ' . $order_by;
+        $query .= ' ORDER BY';
+
+        foreach my $col (@cols) {
+            $query .= ' ';
+
+            if ($col =~ m/(?:ASC|DESC)/) {
+                $query .= $col;
+                next;
+            }
+
+            if ($col =~ s/^(\w+)\.//) {
+                $col = "`$1`.`$col`";
+            } elsif ($default_prefix) {
+                $col = "`$default_prefix`.`$col`";
+            } else {
+                $col = "`$col`";
+            }
+            
+            $query .= $col;
+        }
     }
 
     $query .= ' LIMIT ' . $self->limit if $self->limit;
@@ -149,7 +172,28 @@ sub _sources_to_string {
 
         $string .= ' AS ' . '`' . $source->{as} . '`' if $source->{as};
 
-        $string .= ' ON ' . $source->{constraint} if $source->{constraint};
+        if ($source->{constraint}) {
+            $string .= ' ON ';
+
+            foreach my $key (keys %{$source->{constraint}}) {
+                my $from = $key;
+                my $to = $source->{constraint}->{$key};
+
+                if ($from =~ s/^(\w+)\.//) {
+                    $from = "`$1`.`$from`";
+                } else {
+                    $from = "`$from`";
+                }
+
+                if ($to =~ s/^(\w+)\.//) {
+                    $to = "`$1`.`$to`";
+                } else {
+                    $to = "`$to`";
+                }
+
+                $string .= $from . ' = ' . $to;
+            }
+        }
 
         $first = 0;
     }

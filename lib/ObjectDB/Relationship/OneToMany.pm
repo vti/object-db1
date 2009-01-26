@@ -18,7 +18,7 @@ sub to_source {
     return {
         name       => $rel_table,
         join       => 'left',
-        constraint => "$rel_table.$to=$table.$from"
+        constraint => {"$rel_table.$to" => "$table.$from"}
     };
 }
 

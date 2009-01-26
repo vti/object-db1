@@ -149,8 +149,14 @@ sub _process_related {
                         die "wrong params when setting '$rel' relationship: $rel_values";
                     }
 
-                    foreach my $object (@$objects) {
-                        $self->create_related($rel, %$object);
+                    if ($self->meta->relationships->{$rel}->{type} eq 'one to one') {
+                        die 'HERE';
+                        #$object = $objects->[0];
+                        #$object->update;
+                    } else {
+                        foreach my $object (@$objects) {
+                            $self->create_related($rel, %$object);
+                        }
                     }
                 }
             }
@@ -629,7 +635,7 @@ sub find_related {
         $params{source} = [
             {   name     => $map_table,
                 join       => 'left',
-                constraint => "$table.$to=$map_table.$from"
+                constraint => {"$table.$to" => "$map_table.$from"}
             }
         ];
     } else {
@@ -670,7 +676,9 @@ sub count_related {
           %{$relationship->{map_class}->meta->relationships->{$map_from}
               ->{map}};
 
-        push @{$params{where}}, ($relationship->map_class->meta->table .  '.' . $to => $self->column($from));
+        push @{$params{where}},
+          (     $relationship->map_class->meta->table . '.'
+              . $to => $self->column($from));
 
         ($from, $to) =
           %{$relationship->{map_class}->meta->relationships->{$map_to}
@@ -681,7 +689,7 @@ sub count_related {
         $params{source} = [
             {   name     => $map_table,
                 join       => 'left',
-                constraint => "$table.$to=$map_table.$from"
+                constraint => {"$table.$to" => "$map_table.$from"}
             }
         ];
     } else {

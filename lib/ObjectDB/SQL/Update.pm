@@ -33,9 +33,9 @@ sub to_string {
     foreach my $name (@{$self->columns}) {
         if (ref $self->bind->[$count] eq 'SCALAR') {
             my $value = $self->bind->[$count];
-            $query .= "$name = $$value";
+            $query .= "`$name` = $$value";
         } else {
-            $query .= "$name = ?";
+            $query .= "`$name` = ?";
             push @bind, $self->bind->[$count];
         }
 

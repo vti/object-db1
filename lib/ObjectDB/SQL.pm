@@ -49,7 +49,7 @@ sub _where_to_string {
                     $key .= ".`$col`";
                 }
                 elsif ($default_prefix) {
-                    $key = "$default_prefix.`$key`";
+                    $key = "`$default_prefix`.`$key`";
                 }
                 else {
                     $key = "`$key`";
