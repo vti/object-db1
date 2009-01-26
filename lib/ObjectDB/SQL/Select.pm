@@ -127,16 +127,15 @@ sub to_string {
     $query .= ' HAVING `' . $self->having . '`' if $self->having;
 
     if (my $order_by = $self->order_by) {
-        my @cols = split(/\s+/, $order_by);
+        my @cols = split(/\s*,\s*/, $order_by);
 
-        $query .= ' ORDER BY';
+        $query .= ' ORDER BY ';
 
+        my $first = 1;
         foreach my $col (@cols) {
-            $query .= ' ';
-
-            if ($col =~ m/(?:ASC|DESC)/) {
-                $query .= $col;
-                next;
+            my $order;
+            if ($col =~ s/\s+(ASC|DESC)\s*//) {
+                $order = $1;
             }
 
             if ($col =~ s/^(\w+)\.//) {
@@ -146,8 +145,13 @@ sub to_string {
             } else {
                 $col = "`$col`";
             }
+
+            $query .= ', ' unless $first;
             
             $query .= $col;
+            $query .= ' ' . $order if $order;
+
+            $first = 0;
         }
     }
 

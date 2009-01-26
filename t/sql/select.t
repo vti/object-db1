@@ -1,4 +1,4 @@
-use Test::More tests => 18;
+use Test::More tests => 20;
 
 use ObjectDB::SQLBuilder;
 
@@ -23,6 +23,16 @@ is("$sql", "SELECT `hello`, `boo` FROM `foo` WHERE (`id` = ?)");
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns('foo.hello')->where([id => 2]);
 is("$sql", "SELECT `foo`.`hello` FROM `foo` WHERE (`id` = ?)");
+
+$sql =
+  ObjectDB::SQLBuilder->build('select')->source('foo')->columns('foo.hello')
+  ->order_by('foo, bar DESC');
+is("$sql", "SELECT `foo`.`hello` FROM `foo` ORDER BY `foo`, `bar` DESC");
+
+$sql =
+  ObjectDB::SQLBuilder->build('select')->source('foo')->columns('foo.hello')
+  ->order_by('foo    ASC   , bar');
+is("$sql", "SELECT `foo`.`hello` FROM `foo` ORDER BY `foo` ASC, `bar`");
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('foo')->columns(qw/ hello boo /)
   ->where([id => 2])->group_by('foo')->having('foo')->order_by('hello DESC')
