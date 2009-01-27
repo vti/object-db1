@@ -150,9 +150,7 @@ sub _process_related {
                     }
 
                     if ($self->meta->relationships->{$rel}->{type} eq 'one to one') {
-                        die 'HERE';
-                        #$object = $objects->[0];
-                        #$object->update;
+                        $self->create_related($rel, %{$objects->[0]});
                     } else {
                         foreach my $object (@$objects) {
                             $self->create_related($rel, %$object);
