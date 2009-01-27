@@ -13,7 +13,6 @@ use ObjectDB::Iterator;
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
 __PACKAGE__->attr([qw/ is_in_db is_modified /], default => 0);
-__PACKAGE__->attr('iterator');
 __PACKAGE__->attr('_relationships', default => sub { {} });
 
 sub new {
@@ -766,8 +765,9 @@ sub set_related {
 
     my $relationship = $self->_load_relationship($name);
 
-    die "only 'many to many' is supported"
-      unless $relationship->{type} eq 'many to many';
+    die "only 'many to many and one to one' are supported"
+      unless $relationship->{type} eq 'many to many'
+          || $relationship->{type} eq 'one to one';
 
     my $objects;
 

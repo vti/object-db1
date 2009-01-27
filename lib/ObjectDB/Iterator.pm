@@ -26,8 +26,6 @@ sub next {
         with => $self->with
     );
 
-    $object->iterator($self);
-
     return $object;
 }
 

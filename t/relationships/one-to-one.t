@@ -1,4 +1,4 @@
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 use lib 't/lib';
 
@@ -34,3 +34,11 @@ ok($admin);
 is($admin->find_related('user_admin')->column('beard'), 1);
 $admin->update_related('user_admin', bind => [0]);
 is($admin->find_related('user_admin')->column('beard'), 0);
+
+$admin = Admin->new(
+    name       => 'root3',
+    password   => 'foo'
+);
+$admin->create;
+$admin->set_related('user_admin', beard => 1);
+is($admin->find_related('user_admin')->column('beard'), 1);
