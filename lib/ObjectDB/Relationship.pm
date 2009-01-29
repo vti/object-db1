@@ -5,7 +5,7 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-__PACKAGE__->attr([qw/ type _orig_class _class /]);
+__PACKAGE__->attr([qw/ type _orig_class _class with /]);
 
 sub new {
     my $class = shift;

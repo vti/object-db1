@@ -129,7 +129,7 @@ sub clone {
     return (ref $self)->new(%data);
 }
 
-sub _process_related {
+sub _create_related {
     my $self = shift;
 
     if ($self->meta->relationships) {
@@ -227,7 +227,7 @@ sub create {
     $self->is_in_db(1);
     $self->is_modified(0);
 
-    $self->_process_related;
+    $self->_create_related;
 
     return $self;
 }
@@ -302,8 +302,6 @@ sub update {
 
     my $sth = $dbh->prepare("$sql");
     my $rv = $sth->execute(@{$sql->bind});
-
-    $self->_process_related;
 
     return $rv;
 }
@@ -621,7 +619,9 @@ sub find_related {
           %{$relationship->{map_class}->meta->relationships->{$map_from}
               ->{map}};
 
-        push @{$params{where}}, ($relationship->map_class->meta->table .  '.' . $to => $self->column($from));
+        push @{$params{where}},
+          (     $relationship->map_class->meta->table . '.'
+              . $to => $self->column($from));
 
         ($from, $to) =
           %{$relationship->{map_class}->meta->relationships->{$map_to}
@@ -651,6 +651,10 @@ sub find_related {
 
     if ($relationship->{where}) {
         push @{$params{where}}, %{$relationship->{where}};
+    }
+
+    if ($relationship->with) {
+        $params{with} = $relationship->with;
     }
 
     return $relationship->class->find_objects(%params);
