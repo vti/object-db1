@@ -18,7 +18,7 @@ is_deeply(
     $rel->to_source,
     {   name       => 'user',
         join       => 'left',
-        constraint => {'user.id' => 'article.user_id'}
+        constraint => ['user.id' => 'article.user_id']
     }
 );
 

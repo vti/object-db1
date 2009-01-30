@@ -19,7 +19,7 @@ is_deeply($rel->to_map_source,
     {
         name       => 'article_tag_map',
         join       => 'left',
-        constraint => {'article.id' => 'article_tag_map.article_id'}
+        constraint => ['article.id' => 'article_tag_map.article_id']
     }
 );
 
@@ -27,7 +27,7 @@ is_deeply($rel->to_source,
     {
         name       => 'tag',
         join       => 'left',
-        constraint => {'tag.id' => 'article_tag_map.tag_id'}
+        constraint => ['tag.id' => 'article_tag_map.tag_id']
     }
 );
 

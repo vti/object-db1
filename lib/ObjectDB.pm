@@ -632,7 +632,7 @@ sub find_related {
         $params{source} = [
             {   name     => $map_table,
                 join       => 'left',
-                constraint => {"$table.$to" => "$map_table.$from"}
+                constraint => ["$table.$to" => "$map_table.$from"]
             }
         ];
     } else {
@@ -690,7 +690,7 @@ sub count_related {
         $params{source} = [
             {   name     => $map_table,
                 join       => 'left',
-                constraint => {"$table.$to" => "$map_table.$from"}
+                constraint => ["$table.$to" => "$map_table.$from"]
             }
         ];
     } else {

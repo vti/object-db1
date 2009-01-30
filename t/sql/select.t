@@ -1,4 +1,4 @@
-use Test::More tests => 20;
+use Test::More tests => 21;
 
 use ObjectDB::SQLBuilder;
 
@@ -53,17 +53,28 @@ $sql =
   ->columns('bar_2.foo')->source(
     {   join       => 'inner',
         name       => 'table2',
-        constraint => {'table1.foo' => 'table2.bar'}
+        constraint => ['table1.foo' => 'table2.bar']
     }
   )->columns(qw/ bar baz/);
 
 is("$sql", "SELECT `bar_2`.`foo`, `table2`.`bar`, `table2`.`baz` FROM `table1` INNER JOIN `table2` ON `table1`.`foo` = `table2`.`bar`");
 is("$sql", "SELECT `bar_2`.`foo`, `table2`.`bar`, `table2`.`baz` FROM `table1` INNER JOIN `table2` ON `table1`.`foo` = `table2`.`bar`");
 
+$sql =
+  ObjectDB::SQLBuilder->build('select')->source('table1')
+  ->columns('bar_2.foo')->source(
+    {   join       => 'inner',
+        name       => 'table2',
+        constraint => ['table1.foo' => 'table2.bar', 'table1.bar' => 'hello']
+    }
+  )->columns(qw/ bar baz/);
+
+is("$sql", "SELECT `bar_2`.`foo`, `table2`.`bar`, `table2`.`baz` FROM `table1` INNER JOIN `table2` ON `table1`.`foo` = `table2`.`bar` AND `table1`.`bar` = 'hello'");
+
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->columns('foo')->source(
     {   join       => 'inner',
         name       => 'table2',
-        constraint => {'table1.foo' => 'table2.bar'}
+        constraint => ['table1.foo' => 'table2.bar']
     }
 )->columns(qw/ bar baz/);
 
@@ -72,7 +83,7 @@ is("$sql", "SELECT `table1`.`foo`, `table2`.`bar`, `table2`.`baz` FROM `table1` 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
     {   join       => 'inner',
         name       => 'table3',
-        constraint => {'table1.foo' => 'table2.bar'}
+        constraint => ['table1.foo' => 'table2.bar']
     }
 )->columns(qw/ foo bar /);
 is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON `table1`.`foo` = `table2`.`bar`");
@@ -80,7 +91,7 @@ is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
     {   join       => 'inner',
         name       => 'table3',
-        constraint => {'table1.foo' => 'table2.bar'}
+        constraint => ['table1.foo' => 'table2.bar']
     }
 )->columns(qw/ foo bar /)->where(['table3.foo' => 1]);
 is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON `table1`.`foo` = `table2`.`bar` WHERE (table3.`foo` = ?)");
@@ -88,7 +99,7 @@ is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
     {   join       => 'inner',
         name       => 'table3',
-        constraint => {'table1.foo' => 'table2.bar'}
+        constraint => ['table1.foo' => 'table2.bar']
     }
 )->columns(qw/ foo bar /)->where(['foo' => 1]);
 is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON `table1`.`foo` = `table2`.`bar` WHERE (`table1`.`foo` = ?)");
@@ -96,7 +107,7 @@ is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
     {   join       => 'inner',
         name       => 'table3',
-        constraint => {'table1.foo' => 'table2.bar'}
+        constraint => ['table1.foo' => 'table2.bar']
     }
 )->columns(qw/ foo bar /)->order_by('addtime')->group_by('foo');
 is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON `table1`.`foo` = `table2`.`bar` GROUP BY `table1`.`foo` ORDER BY `table1`.`addtime`");
@@ -104,7 +115,7 @@ is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
     {   join       => 'inner',
         name       => 'table3',
-        constraint => {'table1.foo' => 'table2.bar'}
+        constraint => ['table1.foo' => 'table2.bar']
     }
 )->columns(qw/ foo bar /)->order_by('table2.addtime')->group_by('table2.foo');
 is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON `table1`.`foo` = `table2`.`bar` GROUP BY `table2`.`foo` ORDER BY `table2`.`addtime`");

@@ -15,10 +15,23 @@ sub to_source {
 
     my ($from, $to) = %{$self->{map}};
 
+    my $constraint = ["$rel_table.$to" => "$table.$from"];
+
+    if ($self->join_args) {
+        my $i = 0;
+        foreach my $value (@{$self->join_args}) {
+            if ($i++ % 2) {
+                push @$constraint, $value;
+            } else {
+                push @$constraint, "$rel_table.$value";
+            }
+        }
+    }
+
     return {
         name       => $rel_table,
         join       => 'left',
-        constraint => {"$rel_table.$to" => "$table.$from"}
+        constraint => $constraint
     };
 }
 

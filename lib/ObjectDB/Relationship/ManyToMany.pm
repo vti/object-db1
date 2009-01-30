@@ -60,7 +60,7 @@ sub to_source {
     return {
         name       => $table,
         join       => 'left',
-        constraint => {"$table.$to" => "$map_table.$from"}
+        constraint => ["$table.$to" => "$map_table.$from"]
     };
 }
 
@@ -79,7 +79,7 @@ sub to_map_source {
     return {
         name       => $map_table,
         join       => 'left',
-        constraint => {"$table.$to" => "$map_table.$from"}
+        constraint => ["$table.$to" => "$map_table.$from"]
     };
 }
 

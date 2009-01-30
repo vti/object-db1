@@ -179,9 +179,14 @@ sub _sources_to_string {
         if ($source->{constraint}) {
             $string .= ' ON ';
 
-            foreach my $key (keys %{$source->{constraint}}) {
+            my $count = 0;
+            while (my ($key, $value) = @{$source->{constraint}}[$count, $count + 1]) {
+                last unless $key;
+
+                $string .= ' AND ' unless $count == 0;
+
                 my $from = $key;
-                my $to = $source->{constraint}->{$key};
+                my $to = $value;
 
                 if ($from =~ s/^(\w+)\.//) {
                     $from = "`$1`.`$from`";
@@ -192,10 +197,12 @@ sub _sources_to_string {
                 if ($to =~ s/^(\w+)\.//) {
                     $to = "`$1`.`$to`";
                 } else {
-                    $to = "`$to`";
+                    $to = "'$to'";
                 }
 
                 $string .= $from . ' = ' . $to;
+
+                $count += 2;
             }
         }
 
