@@ -12,7 +12,8 @@ use ObjectDB::Iterator;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
-__PACKAGE__->attr([qw/ is_in_db is_modified /], default => 0);
+__PACKAGE__->attr([qw/ is_in_db /], default => 1);
+__PACKAGE__->attr([qw/ is_modified /], default => 0);
 __PACKAGE__->attr('_relationships', default => sub { {} });
 
 sub new {
@@ -20,6 +21,7 @@ sub new {
     my $self = $class->SUPER::new();
 
     $self->init(@_);
+    $self->is_in_db(0);
     $self->is_modified(0);
 
     return $self;
@@ -33,7 +35,7 @@ sub init {
     my %values = ref $_[0] ? %{$_[0]} : @_;
     foreach my $key ($self->meta->columns) {
         if (exists $values{$key}) {
-            $self->{_columns}->{$key} = delete $values{$key};
+            $self->column($key => $values{$key});
         }
         elsif (!defined $self->column($key)
             && defined(my $default = $self->meta->_columns->{$key}->{default})
@@ -54,8 +56,6 @@ sub init {
 
     # fake columns
     $self->{_columns}->{$_} = $values{$_} foreach (keys %values);
-
-    $self->is_modified(1);
 
     return $self;
 }
@@ -107,6 +107,8 @@ sub column {
     } elsif (@_ == 2) {
         if (defined $self->{_columns}->{$_[0]} && defined $_[1]) {
             $self->is_modified(1) if $self->{_columns}->{$_[0]} ne $_[1];
+        } elsif (defined $self->{_columns}->{$_[0]} || defined $_[1]) {
+            $self->is_modified(1);
         }
 
         $self->{_columns}->{$_[0]} = $_[1];
@@ -404,6 +406,8 @@ sub find_objects {
                 columns => [$sql->columns],
                 with    => $with
             );
+            $object->is_in_db(1);
+            $object->is_modified(0);
 
             push @objects, $object;
         }

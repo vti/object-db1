@@ -1,4 +1,4 @@
-use Test::More tests => 8;
+use Test::More tests => 11;
 
 use lib 't/lib';
 
@@ -24,4 +24,16 @@ is($u->is_in_db, 1);
 is($u->is_modified, 0);
 
 $u->init(name => 'foo');
+is($u->is_modified, 0);
+
+$u->is_modified(0);
+$u->init(name => 'foo');
+is($u->is_modified, 0);
+
+$u->is_modified(0);
+$u->init(name => undef);
 is($u->is_modified, 1);
+
+$u->is_modified(0);
+$u->init(name => undef);
+is($u->is_modified, 0);
