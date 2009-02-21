@@ -15,7 +15,7 @@ __PACKAGE__->meta(
 );
 
 package main;
-use Test::More tests => 3;
+use Test::More tests => 4;
 
 my $d = Default->new;
 is($d->column('title'), 'abc');
@@ -25,3 +25,6 @@ is($d->column('title'), 'foo');
 
 $d = Default->new;
 ok($d->column('addtime') >= time);
+
+$d = Default->new(addtime => '123');
+is($d->column('addtime'), '123');

@@ -94,7 +94,7 @@ $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')
         constraint => ['table1.foo' => 'table2.bar']
     }
 )->columns(qw/ foo bar /)->where(['table3.foo' => 1]);
-is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON `table1`.`foo` = `table2`.`bar` WHERE (table3.`foo` = ?)");
+is("$sql", "SELECT `table3`.`foo`, `table3`.`bar` FROM `table1`, `table2` INNER JOIN `table3` ON `table1`.`foo` = `table2`.`bar` WHERE (`table3`.`foo` = ?)");
 
 $sql = ObjectDB::SQLBuilder->build('select')->source('table1')->source('table2')->source(
     {   join       => 'inner',

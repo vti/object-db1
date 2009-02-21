@@ -146,12 +146,15 @@ sub _create_related {
                         $objects = $rel_values;
                     } elsif (ref $rel_values eq 'HASH') {
                         $objects = [$rel_values];
+                    } elsif (ref $rel_values) {
+                        $objects = [$rel_values->to_hash];
                     } else {
                         die "wrong params when setting '$rel' relationship: $rel_values";
                     }
 
                     if ($self->meta->relationships->{$rel}->{type} eq 'one to one') {
-                        $self->create_related($rel, %{$objects->[0]});
+                        my $rel_object = $self->create_related($rel, %{$objects->[0]});
+                        $self->_relationships->{$rel} = $rel_object;
                     } else {
                         foreach my $object (@$objects) {
                             $self->create_related($rel, %$object);
@@ -162,6 +165,21 @@ sub _create_related {
         }
     }
 }
+
+sub _update_related {
+    my $self = shift;
+
+    if ($self->meta->relationships) {
+        foreach my $rel (keys %{$self->meta->relationships}) {
+            if (my $rel_values = $self->_relationships->{$rel}) {
+                if ($self->meta->relationships->{$rel}->{type} eq 'many to many') {
+                    $self->set_related($rel, $rel_values);
+                }
+            }
+        }
+    }
+}
+
 
 sub begin {
     my $self = shift;
@@ -304,6 +322,8 @@ sub update {
 
     my $sth = $dbh->prepare("$sql");
     my $rv = $sth->execute(@{$sql->bind});
+
+    $self->_update_related;
 
     return $rv;
 }
@@ -540,18 +560,18 @@ sub create_related {
             $object = $relationship->class->new(@_)->create;
         }
 
-        my $map_from = $relationship->{map_from};
-        my $map_to = $relationship->{map_to};
+        my $map_from = $relationship->map_from;
+        my $map_to   = $relationship->map_to;
 
         my ($from_foreign_pk, $from_pk) =
-          %{$relationship->{map_class}->meta->relationships->{$map_from}
+          %{$relationship->map_class->meta->relationships->{$map_from}
               ->{map}};
 
         my ($to_foreign_pk, $to_pk) =
-          %{$relationship->{map_class}->meta->relationships->{$map_to}
+          %{$relationship->map_class->meta->relationships->{$map_to}
               ->{map}};
 
-        $relationship->{map_class}->new(
+        $relationship->map_class->new(
             $from_foreign_pk => $self->column($from_pk),
             $to_foreign_pk   => $object->column($to_pk)
         )->create;
@@ -585,7 +605,10 @@ sub related {
     if (my $rel = $self->_relationships->{$name}) {
         if (ref $rel eq 'ARRAY') {
             return @$rel if $wantarray;
-        } elsif ($rel->isa('ObjectDB::Iterator')) {
+        } elsif (ref $rel eq 'HASH') {
+            return $self->_relationships->{$name} =
+              $self->meta->relationships->{$name}->class->new(%$rel);
+        } elsif (ref $rel && $rel->isa('ObjectDB::Iterator')) {
             return $rel unless $wantarray;
         } elsif (ref $rel) {
             return $rel;
@@ -620,7 +643,7 @@ sub find_related {
         my $map_to = $relationship->{map_to};
 
         my ($to, $from) =
-          %{$relationship->{map_class}->meta->relationships->{$map_from}
+          %{$relationship->map_class->meta->relationships->{$map_from}
               ->{map}};
 
         push @{$params{where}},
@@ -628,11 +651,11 @@ sub find_related {
               . $to => $self->column($from));
 
         ($from, $to) =
-          %{$relationship->{map_class}->meta->relationships->{$map_to}
+          %{$relationship->map_class->meta->relationships->{$map_to}
               ->{map}};
 
         my $table = $relationship->class->meta->table;
-        my $map_table = $relationship->{map_class}->meta->table;
+        my $map_table = $relationship->map_class->meta->table;
         $params{source} = [
             {   name     => $map_table,
                 join       => 'left',
@@ -764,7 +787,7 @@ sub delete_related {
         push @{$params{where}}, %{$relationship->{where}};
     }
 
-    return $relationship->{$class_param}->delete_objects(%params);
+    return $relationship->$class_param->delete_objects(%params);
 }
 
 sub set_related {

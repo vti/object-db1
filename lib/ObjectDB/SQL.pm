@@ -44,9 +44,17 @@ sub _where_to_string {
                 my $logic = $self->where_logic || 'AND';
                 $string .= " $logic " unless $count == 0;
 
+                if ($key =~ s/^-//) {
+                    if ($key eq 'or' || $key eq 'and') {
+                        $self->where_logic(uc $key);
+                        $string .= $self->_where_to_string($value);
+                        last;
+                    }
+                }
+
                 if ($key =~ s/\.(\w+)$//) {
                     my $col = $1;
-                    $key .= ".`$col`";
+                    $key = "`$key`.`$col`";
                 }
                 elsif ($default_prefix) {
                     $key = "`$default_prefix`.`$key`";
@@ -95,6 +103,8 @@ sub _where_to_string {
     else {
         $string .= $where;
     }
+
+    return unless $string;
 
     return $self->_where_string("($string)");
 }
