@@ -27,7 +27,8 @@ is_deeply(
             id       => $u->column('id'),
             name     => 'foo',
             password => ''
-        }
+        },
+        comment_count => undef
     }
 );
 

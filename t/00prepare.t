@@ -22,6 +22,7 @@ $dbh->do(<<"");
 CREATE TABLE `article` (
  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `category_id` INTEGER,
+ `comment_count` INTEGER,
  `user_id` INTEGER,
  `title` varchar(40) default '',
  `name` varchar(40) default ''
@@ -138,5 +139,22 @@ CREATE TABLE `wiki_simple` (
  `revision` INTEGER NOT NULL DEFAULT 1,
  `title` varchar(40) default '',
  `content` varchar(40) default ''
+);
+
+$dbh->do(<<"");
+DROP TABLE IF EXISTS `nested_comment`;
+
+$dbh->do(<<"");
+CREATE TABLE `nested_comment` (
+ `id`          INTEGER PRIMARY KEY,
+ `parent_id`   INTEGER,
+ `master_id`   INTEGER NOT NULL,
+ `master_type` VARCHAR(20) NOT NULL ,
+ `path`        VARCHAR(255),
+ `level`       INTEGER NOT NULL ,
+ `content`     VARCHAR(1024) NOT NULL,
+ `addtime`     INTEGER NOT NULL,
+ `lft`         INTEGER NOT NULL,
+ `rgt`         INTEGER NOT NULL
 );
 

@@ -7,7 +7,7 @@ use base 'DB';
 
 __PACKAGE__->meta(
     table          => 'article',
-    columns        => [qw/ id category_id user_id title name /],
+    columns        => [qw/ id category_id user_id title name comment_count /],
     primary_keys   => ['id'],
     auto_increment => 'id',
 
