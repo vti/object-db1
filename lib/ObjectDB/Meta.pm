@@ -5,7 +5,7 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-require Clone;
+use Storable 'dclone';
 require Carp;
 
 __PACKAGE__->attr('table', chained => 1);
@@ -29,7 +29,7 @@ sub new {
 
     foreach my $parent (_get_parents($for_class)) {
         if (my $parent_meta = $objects{$parent}) {
-            my $meta = Clone::clone $parent_meta;
+            my $meta = dclone $parent_meta;
 
             $meta->class($for_class);
 
