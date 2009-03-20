@@ -105,9 +105,11 @@ sub to_string {
         $default_prefix = $self->_sources->[0]->{name};
     }
 
-    if ($self->where) {
-        $query .= ' WHERE ';
-        $query .= $self->_where_to_string($self->where, $default_prefix);
+    if (my $where = $self->where) {
+        if (ref $where eq 'ARRAY' && @$where || ref $where ne 'ARRAY') {
+            $query .= ' WHERE ';
+            $query .= $self->_where_to_string($self->where, $default_prefix);
+        }
     }
 
     if (my $group_by = $self->group_by) {
