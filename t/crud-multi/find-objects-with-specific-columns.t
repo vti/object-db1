@@ -14,7 +14,7 @@ ok($users[0]->column('id'));
 is($users[0]->column('name'), 'foo');
 ok(not defined $users[0]->column('password'));
 
-my @users = User->find_objects(columns => [qw/ name password /]);
+my @users = User->find_objects(columns => [qw/ password name /]);
 is(@users, 1);
 ok($users[0]->column('id'));
 is($users[0]->column('name'), 'foo');
