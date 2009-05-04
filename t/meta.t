@@ -72,8 +72,11 @@ __PACKAGE__->meta(
 package Advanced;
 use base 'Album';
 
-__PACKAGE__->meta->add_column('year');
-__PACKAGE__->meta->add_relationship(foo => {type => 'one to one'});
+__PACKAGE__->meta->add_columns(qw/year month/, 'time' => {default => 'now'});
+__PACKAGE__->meta->add_relationships(
+    foo => {type => 'one to one'},
+    bar => {type => 'one to many'}
+);
 
 package ColumnsWithOptions;
 use base 'ObjectDB';
@@ -86,7 +89,7 @@ __PACKAGE__->meta(
 
 package main;
 
-use Test::More tests => 28;
+use Test::More tests => 31;
 
 use lib 't/lib';
 
@@ -123,7 +126,10 @@ is(keys %$relationships, 1);
 is_deeply($relationships->{albums}->class, 'Album');
 
 $relationships = Advanced->meta->relationships;
-is(keys %$relationships, 2);
+is(Advanced->meta->is_column('year'), 1);
+is(Advanced->meta->is_column('month'), 1);
+is(Advanced->meta->is_column('time'), 1);
+is(keys %$relationships, 3);
 is($relationships->{foo}->orig_class, 'Advanced');
 is_deeply($relationships->{foo}->type, 'one to one');
 

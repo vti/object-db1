@@ -158,12 +158,35 @@ sub unique_keys {
 
 sub add_column {
     my $self = shift;
-    my ($name) = @_;
+    my ($name, $options) = @_;
 
     return unless $name;
 
-    $self->_columns->{$name} = {};
+    $options ||= {};
+
+    $self->_columns->{$name} = $options;
     push @{$self->_columns_array}, $name;
+}
+
+sub add_columns {
+    my $self = shift;
+
+    my $count = 0;
+    while (my ($name, $options) = @_[$count, $count + 1]) {
+        last unless $name;
+
+        if (ref $options eq 'HASH') {
+            $self->add_column($name, $options);
+        }
+        else {
+            $self->add_column($name);
+
+            $count++;
+            next;
+        }
+
+        $count += 2;
+    }
 }
 
 sub add_relationship {
@@ -175,6 +198,19 @@ sub add_relationship {
     $self->relationships->{$name} =
       ObjectDB::RelationshipFactory->build(%$options,
         orig_class => $self->class);
+}
+
+sub add_relationships {
+    my $self = shift;
+
+    my $count = 0;
+    while (my ($name, $options) = @_[$count, $count + 1]) {
+        last unless $name;
+
+        $self->add_relationship($name, $options);
+
+        $count += 2;
+    }
 }
 
 sub del_column {
