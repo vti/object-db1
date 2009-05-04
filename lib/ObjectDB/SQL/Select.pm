@@ -136,7 +136,7 @@ sub to_string {
         my $first = 1;
         foreach my $col (@cols) {
             my $order;
-            if ($col =~ s/\s+(ASC|DESC)\s*//) {
+            if ($col =~ s/\s+(ASC|DESC)\s*//i) {
                 $order = $1;
             }
 
