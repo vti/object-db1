@@ -5,12 +5,12 @@ use warnings;
 
 use base 'ObjectDB::Base';
 
-use Storable 'dclone';
+require Storable;
 require Carp;
 
 __PACKAGE__->attr('table', chained => 1);
 __PACKAGE__->attr('auto_increment', chained => 1);
-__PACKAGE__->attr('relationships', chained => 1);
+__PACKAGE__->attr('relationships' => (chained => 1, default => sub { {} }));
 __PACKAGE__->attr('class', chained => 1);
 
 __PACKAGE__->attr('_primary_keys', default => sub {[]}, chained => 1);
@@ -29,7 +29,7 @@ sub new {
 
     foreach my $parent (_get_parents($for_class)) {
         if (my $parent_meta = $objects{$parent}) {
-            my $meta = dclone $parent_meta;
+            my $meta = Storable::dclone($parent_meta);
 
             $meta->class($for_class);
 
@@ -205,7 +205,7 @@ sub add_relationships {
 
     my $count = 0;
     while (my ($name, $options) = @_[$count, $count + 1]) {
-        last unless $name;
+        last unless $name && $options;
 
         $self->add_relationship($name, $options);
 

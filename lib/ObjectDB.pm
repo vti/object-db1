@@ -63,7 +63,9 @@ sub init {
 sub init_db {
     my $self = shift;
 
-    die 'init_db method must be overloaded';
+    $self->{init_db} = shift if @_;
+
+    return $self->{init_db};
 }
 
 sub meta {
@@ -263,7 +265,7 @@ sub find {
               || $self->meta->is_unique_key($name);
     }
 
-    die "no primary or unique keys specified" unless @columns;
+    die ref($self) . ": no primary or unique keys specified" unless @columns;
 
     my $sql = ObjectDB::SQLBuilder->build('select');
 
@@ -551,11 +553,13 @@ sub create_related {
     }
 
     if ($relationship->{type} eq 'many to many') {
-        if (my $object = $self->find_related($name, single => 1, where => [@_])) {
+        my $object;
+
+        if ($object = $self->find_related($name, single => 1, where => [@_])) {
             return $object;
         }
 
-        my $object = $relationship->class->new(@_)->find;
+        $object = $relationship->class->new(@_)->find;
         unless ($object) {
             $object = $relationship->class->new(@_)->create;
         }
@@ -822,13 +826,13 @@ sub set_related {
 }
 
 sub _map_row_to_object {
-    my $class = shift;
+    my $class  = shift;
     my %params = @_;
 
-    my $row = $params{row};
-    my $with = $params{with};
+    my $row     = $params{row};
+    my $with    = $params{with};
     my $columns = $params{columns};
-    my $o = $params{object};
+    my $o       = $params{object};
 
     my %values = map { $_ => shift @$row } @$columns;
 
@@ -840,25 +844,30 @@ sub _map_row_to_object {
 
             if ($rel_info->{subwith}) {
                 foreach my $subwith (@{$rel_info->{subwith}}) {
-                    $parent_object = $parent_object->_relationships->{$subwith};
+                    $parent_object =
+                      $parent_object->_relationships->{$subwith};
                     die "load $subwith first" unless $parent_object;
                 }
             }
 
-            my $relationship = $parent_object->meta->relationships->{$rel_info->{name}};
+            my $relationship =
+              $parent_object->meta->relationships->{$rel_info->{name}};
 
-            if ($relationship->{type} eq 'many to one' ||
-                $relationship->{type} eq 'one to one') {
+            if (   $relationship->{type} eq 'many to one'
+                || $relationship->{type} eq 'one to one')
+            {
                 %values = map { $_ => shift @$row } @{$rel_info->{columns}};
 
                 my $rel_object = $relationship->class->new(%values);
-                $parent_object->_relationships->{$rel_info->{name}} = $rel_object;
-            } else {
-                die 'not supported';
+                $parent_object->_relationships->{$rel_info->{name}} =
+                  $rel_object;
+            }
+            else {
+                die $relationship->{type} . ' not supported';
             }
         }
     }
-    
+
     return $object;
 }
 
@@ -888,7 +897,9 @@ sub _resolve_with {
                 $last = 1;
             }
 
-            $relationship = $relationships->{$name};
+            unless ($relationship = $relationships->{$name}) {
+                die $class . ": unknown relationship '$name'";
+            }
 
             if ($relationship->type eq 'many to one' || $relationship->type eq 'one to one') {
                 $sql->source($relationship->to_source);
@@ -974,6 +985,8 @@ sub to_hash {
 
     foreach my $name (keys %{$self->_relationships}) {
         my $rel = $self->_relationships->{$name};
+
+        die "unknown '$name' relationship" unless $rel;
 
         if (ref $rel eq 'ARRAY') {
         } elsif ($rel->isa('ObjectDB::Iterator')) {

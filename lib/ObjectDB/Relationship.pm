@@ -27,6 +27,7 @@ sub orig_class {
 
     unless ($orig_class->can('isa')) {
         eval "require $orig_class;";
+        die $@ if $@;
     }
 
     return $orig_class;
@@ -39,6 +40,7 @@ sub class {
 
     unless ($class->can('isa')) {
         eval "require $class;";
+        die $@ if $@;
     }
 
     return $class;

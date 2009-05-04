@@ -26,6 +26,7 @@ sub map_class {
 
     unless ($map_class->can('isa')) {
         eval "require $map_class;";
+        die $@ if $@;
     }
 
     return $map_class;
@@ -37,6 +38,7 @@ sub class {
     my $map_class = $self->map_class;
     unless ($map_class->can('isa')) {
         eval "require $map_class;";
+        die $@ if $@;
     }
 
     $self->_class($map_class->meta->relationships->{$self->map_to}->class)
