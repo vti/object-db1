@@ -63,7 +63,11 @@ sub init {
 sub init_db {
     my $self = shift;
 
-    $self->{init_db} = shift if @_;
+    if (@_) {
+        $self->{init_db} = shift;
+
+        return $self;
+    }
 
     return $self->{init_db};
 }
