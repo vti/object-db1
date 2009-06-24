@@ -411,6 +411,7 @@ sub find_objects {
     $sql->merge(%params);
 
     $class->_resolve_columns($sql);
+    $class->_resolve_order_by($sql);
 
     my $dbh = $class->init_db;
 
@@ -862,9 +863,11 @@ sub _map_row_to_object {
             {
                 %values = map { $_ => shift @$row } @{$rel_info->{columns}};
 
-                my $rel_object = $relationship->class->new(%values);
-                $parent_object->_relationships->{$rel_info->{name}} =
-                  $rel_object;
+                if (grep { defined $values{$_} } keys %values) {
+                    my $rel_object = $relationship->class->new(%values);
+                    $parent_object->_relationships->{$rel_info->{name}} =
+                      $rel_object;
+                }
             }
             else {
                 die $relationship->{type} . ' not supported';
@@ -972,6 +975,37 @@ sub _resolve_columns {
             }
         }
     }
+
+    return $self;
+}
+
+sub _resolve_order_by {
+    my $self = shift;
+    return unless @_;
+
+    my ($sql) = @_;
+
+    my $order_by = $sql->order_by;
+    return unless $order_by;
+
+    my @parts = split(',', $order_by);
+
+    foreach my $part (@parts) {
+        my $relationships = $self->meta->relationships;
+        while ($part =~ s/^(\w+)\.//) {
+            my $prefix = $1;
+
+            if (my $relationship = $relationships->{$prefix}) {
+                my $rel_table = $relationship->related_table;
+                $part = "$rel_table.$part";
+
+                $relationships =
+                  $relationship->class->meta->relationships;
+            }
+        }
+    }
+
+    $sql->order_by(join(', ', @parts));
 
     return $self;
 }
