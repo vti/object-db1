@@ -1,28 +1,26 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
 use Test::More tests => 4;
 
 use lib 't/lib';
 
-use User;
+use Author;
 
-User->delete_objects;
+my $author;
 
-User->begin(behavior => 'immediate');
+Author->begin_work;
+Author->new(name => 'foo') ->create;
+is(Author->count, 1);
+Author->rollback;
+is(Author->count, 0);
 
-User->new(name => 'foo')->create;
+Author->begin_work;
+$author = Author->new(name => 'foo')->create;
+is(Author->count, 1);
+Author->commit;
+is(Author->count, 1);
 
-is(User->count_objects, 1);
-
-User->rollback;
-
-is(User->count_objects, 0);
-
-
-User->begin(behavior => 'immediate');
-
-User->new(name => 'foo')->create;
-
-is(User->count_objects, 1);
-
-User->commit;
-
-is(User->count_objects, 1);
+$author->delete;

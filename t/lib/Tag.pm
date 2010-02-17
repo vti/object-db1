@@ -3,11 +3,11 @@ package Tag;
 use strict;
 use warnings;
 
-use base 'DB';
+use base 'TestDB';
 
-__PACKAGE__->meta(
+__PACKAGE__->schema(
     table          => 'tag',
-    columns        => [qw/ id name /],
+    columns        => [qw/id name/],
     primary_keys   => ['id'],
     auto_increment => 'id',
     unique_keys    => ['name'],

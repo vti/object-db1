@@ -3,20 +3,15 @@ package Category;
 use strict;
 use warnings;
 
-use base 'DB';
+use base 'TestDB';
 
-__PACKAGE__->meta(
+__PACKAGE__->schema(
     table          => 'category',
-    columns        => [qw/ id user_id title /],
+    columns        => [qw/id title/],
     primary_keys   => ['id'],
     auto_increment => 'id',
 
     relationships => {
-        user => {
-            type  => 'many to one',
-            class => 'User',
-            map   => {user_id => 'id'}
-        },
         articles => {
             type  => 'one to many',
             class => 'Article',

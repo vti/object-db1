@@ -2,14 +2,14 @@ use Test::More tests => 3;
 
 use lib 't/lib';
 
-use User;
+use Author;
 
-my $u = User->new;
+my $author = Author->new;
 
-ok($u);
+ok($author);
 
-$u->column('foo' => 'bar');
-is($u->column('foo'), 'bar');
+$author->column('foo' => 'bar');
+is($author->column('foo'), 'bar');
 
-$u = User->new(foo => 'bar');
-is($u->column('foo'), 'bar');
+$author = Author->new(foo => 'bar');
+is($author->column('foo'), 'bar');

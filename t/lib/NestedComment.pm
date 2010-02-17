@@ -3,16 +3,12 @@ package NestedComment;
 use strict;
 use warnings;
 
-use base 'DB';
+use base 'TestDB';
 
-__PACKAGE__->meta(
-    table   => 'nested_comment',
-    columns => [
-        qw/ id master_id master_type parent_id level rgt lft content /,
-        addtime => {
-            default => sub {time}
-        }
-    ],
+__PACKAGE__->schema(
+    table => 'nested_comment',
+    columns =>
+      [qw/id addtime master_id master_type parent_id level rgt lft content/,],
     primary_keys   => 'id',
     auto_increment => 'id',
     relationships  => {
@@ -45,78 +41,64 @@ __PACKAGE__->meta(
 
 sub create {
     my $self = shift;
+    my ($dbh, $cb) = @_;
 
-    my $rgt = 1;
-    my $level = 0;
+    my $rgt           = 1;
+    my $level         = 0;
+    my $comment_count = 0;
 
-    $self->begin(behavior => 'immediate');
+    if ($self->column('parent_id')) {
+        my $parent = $self->find_related('parent');
 
-    eval {
-        if ($self->column('parent_id')) {
-            my $parent = $self->find_related('parent');
-
-            $self->column(master_id => $parent->column('master_id'));
+        if ($parent) {
+            $self->column(master_id   => $parent->column('master_id'));
             $self->column(master_type => $parent->column('master_type'));
 
             $level = $parent->column('level') + 1;
 
             $rgt = $parent->column('lft');
         }
-
-        my $master = $self->find_related('master');
-
-        my $comment_count = $self->count_objects(
-            where => [
-                master_type => $self->column('master_type'),
-                master_id   => $self->column('master_id')
-            ]
-        );
-
-        if ($comment_count) {
-            my $left;
-
-            $left = $self->find_objects(
-                where => [
-                    master_id   => $self->column('master_id'),
-                    master_type => $self->column('master_type'),
-                    parent_id   => $self->column('parent_id')
-                ],
-                order_by => 'addtime DESC, id DESC',
-                limit    => 1,
-                single   => 1
-            );
-
-            $rgt = $left->column('rgt') if $left;
-
-            $self->update_objects(
-                columns => ['rgt'],
-                bind    => [\'rgt + 2'],
-                where   => [rgt => {'>' => $rgt}]
-            );
-            $self->update_objects(
-                columns => ['lft'],
-                bind    => [\'lft + 2'],
-                where   => [lft => {'>' => $rgt}]
-            );
-        }
-
-        $self->column(lft => $rgt + 1);
-        $self->column(rgt => $rgt + 2);
-        $self->column(level => $level);
-        $self->SUPER::create;
-
-        $master->column(comment_count => $comment_count + 1);
-        $master->update;
-    };
-
-    if ($@) {
-        $self->rollback;
-        return;
     }
 
-    $self->commit;
+    $comment_count = $self->count(
+        where => [
+            master_type => $self->column('master_type'),
+            master_id   => $self->column('master_id')
+        ]
+    );
 
-    return $self;
+    if ($comment_count) {
+        my $left = $self->find(
+            where => [
+                master_id   => $self->column('master_id'),
+                master_type => $self->column('master_type'),
+                parent_id   => $self->column('parent_id')
+            ],
+            order_by => 'addtime DESC, id DESC',
+            single   => 1
+        );
+
+
+        $rgt = $left->column('rgt') if $left;
+
+        $self->update(
+            set   => {'rgt' => \'rgt + 2'},
+            where => [rgt   => {'>' => $rgt}]
+        );
+
+        $self->update(
+            set   => {'lft' => \'lft + 2'},
+            where => [lft   => {'>' => $rgt}]
+        );
+    }
+
+    $self->column(lft   => $rgt + 1);
+    $self->column(rgt   => $rgt + 2);
+    $self->column(level => $level);
+
+    $self->column(addtime => time) unless $self->column('addtime');
+
+    return $self->SUPER::create;
 }
 
 1;

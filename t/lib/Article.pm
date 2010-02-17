@@ -3,19 +3,19 @@ package Article;
 use strict;
 use warnings;
 
-use base 'DB';
+use base 'TestDB';
 
-__PACKAGE__->meta(
+__PACKAGE__->schema(
     table          => 'article',
-    columns        => [qw/ id category_id user_id title name comment_count /],
+    columns        => [qw/ id category_id author_id title /],
     primary_keys   => ['id'],
     auto_increment => 'id',
 
     relationships => {
-        user => {
+        author => {
             type  => 'many to one',
-            class => 'User',
-            map   => {user_id => 'id'}
+            class => 'Author',
+            map   => {author_id => 'id'}
         },
         category => {
             type  => 'many to one',
@@ -31,12 +31,10 @@ __PACKAGE__->meta(
         comments => {
             type  => 'one to many',
             class => 'Comment',
-            where => {type => 'article'},
+            where => [type => 'article'],
             map   => {id => 'master_id'}
         }
     }
 );
-
-sub tags { shift->related('tags') }
 
 1;

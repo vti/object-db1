@@ -3,12 +3,12 @@ package Comment;
 use strict;
 use warnings;
 
-use base 'DB';
+use base 'TestDB';
 
-__PACKAGE__->meta(
+__PACKAGE__->schema(
     table        => 'comment',
-    columns      => [qw/ master_id type content /],
-    primary_keys => [qw/ master_id type /],
+    columns      => [qw/master_id type content/],
+    primary_keys => [qw/master_id type/],
 
     relationships => {
         master => {

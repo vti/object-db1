@@ -5,10 +5,11 @@ use ObjectDB::Relationship::OneToOne;
 use lib 't/lib';
 
 my $rel = ObjectDB::Relationship::OneToOne->new(
+    name       => 'article',
     type       => 'one to one',
-    orig_class => 'User',
+    orig_class => 'Author',
     class      => 'Article',
-    map        => {id => 'user_id'}
+    map        => {id => 'author_id'}
 );
 ok($rel);
 
@@ -17,8 +18,9 @@ is($rel->related_table, 'article');
 is_deeply(
     $rel->to_source,
     {   name       => 'article',
+        as         => 'article',
         join       => 'left',
-        constraint => ['article.user_id' => 'user.id']
+        constraint => ['article.author_id' => 'author.id']
     }
 );
 

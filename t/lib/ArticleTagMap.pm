@@ -3,9 +3,9 @@ package ArticleTagMap;
 use strict;
 use warnings;
 
-use base 'DB';
+use base 'TestDB';
 
-__PACKAGE__->meta(
+__PACKAGE__->schema(
     table        => 'article_tag_map',
     columns      => [qw/ article_id tag_id /],
     primary_keys => [qw/ article_id tag_id /],

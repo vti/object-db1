@@ -1,15 +1,45 @@
-use Test::More tests => 2;
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Test::More tests => 10;
 
 use lib 't/lib';
 
-use User;
+use Foo;
+use Author;
 
-my $u = User->new(name => 'foo', password => 'bar')->create;
+# No primary keys
+eval { Foo->new->column(password => 'foo')->update };
+like($@, qr/no primary or unique keys specified/);
 
-$u->column(name => 'fuu');
-$u->column(password => 'boo');
-$u->update;
+# DBI error
+my $foo = Foo->new(id => 1);
+$foo->column(name => 'bar');
+ok(not defined $foo->update);
+like($foo->error, qr/(no such table|doesn't exist)/);
 
-$u = User->new(id => $u->column('id'))->find;
-is($u->column('name'), 'fuu');
-is($u->column('password'), 'boo');
+# Updating and in-place checking
+my $author = Author->new(name => 'foo', password => 'bar')->create;
+$author->column(name     => 'fuu');
+$author->column(password => 'boo');
+$author->update;
+is($author->column('name'),     'fuu');
+is($author->column('password'), 'boo');
+
+# Load from database
+$author = Author->new(id => $author->column('id'))->load;
+is($author->column('name'),     'fuu');
+is($author->column('password'), 'boo');
+
+eval {Author->update()};
+like($@, qr/set is required/);
+
+Author->update(set => {name => 'haha'});
+$author = Author->new(id => $author->column('id'))->load;
+is($author->column('name'),     'haha');
+is($author->column('password'), 'boo');
+
+# Cleanup
+$author->delete;

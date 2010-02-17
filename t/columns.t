@@ -2,12 +2,12 @@ use Test::More tests => 3;
 
 use lib 't/lib';
 
-use User;
+use Author;
 
-my $u = User->new;
+my $author = Author->new;
 
-ok($u);
-is_deeply([$u->columns], []);
+ok($author);
+is_deeply([$author->columns], []);
 
-$u->column(id => 'boo');
-is_deeply([$u->columns], [qw/ id /]);
+$author->column(id => 'boo');
+is_deeply([$author->columns], [qw/ id /]);

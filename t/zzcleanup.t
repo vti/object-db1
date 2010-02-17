@@ -1,4 +1,7 @@
 use Test::More tests => 1;
 
-unlink 'table.db';
-ok(!-f 'table.db');
+use lib 't/lib';
+
+use TestDB;
+
+ok(TestDB->cleanup);

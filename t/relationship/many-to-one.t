@@ -1,24 +1,46 @@
-use Test::More tests => 3;
+#!perl
+
+use strict;
+use warnings;
+
+use Test::More tests => 4;
 
 use ObjectDB::Relationship::ManyToOne;
 
 use lib 't/lib';
 
 my $rel = ObjectDB::Relationship::ManyToOne->new(
+    name       => 'author_rel',
     type       => 'many to one',
-    class      => 'User',
+    class      => 'Author',
     orig_class => 'Article',
-    map        => {user_id => 'id'}
+    map        => {author_id => 'id'},
+    join_args  => [title => 'foo']
 );
 ok($rel);
 
-is($rel->related_table, 'user');
+is($rel->related_table, 'author');
 
 is_deeply(
     $rel->to_source,
-    {   name       => 'user',
+    {   name       => 'author',
+        as         => 'author_rel',
         join       => 'left',
-        constraint => ['user.id' => 'article.user_id']
+        constraint => [
+            'author_rel.id'    => 'article.author_id',
+            'author_rel.title' => 'foo'
+        ]
     }
 );
 
+is_deeply(
+    $rel->to_source(rel_as => 'articles'),
+    {   name       => 'author',
+        as         => 'author_rel',
+        join       => 'left',
+        constraint => [
+            'author_rel.id'    => 'articles.author_id',
+            'author_rel.title' => 'foo'
+        ]
+    }
+);

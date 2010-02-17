@@ -1,12 +1,8 @@
-use Test::More tests => 3;
+use Test::More tests => 2;
 
 use ObjectDB::Relationship;
 
-my $rel = ObjectDB::Relationship->new(
-    type       => 'many to one',
-    orig_class => 'Article'
-);
+my $rel = ObjectDB::Relationship->build(name => 'foo', type => 'many to one');
 ok($rel);
 
-is($rel->type,       'many to one');
-is($rel->orig_class, 'Article');
+is(ref $rel, 'ObjectDB::Relationship::ManyToOne');

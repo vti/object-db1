@@ -2,24 +2,24 @@ use Test::More tests => 7;
 
 use lib 't/lib';
 
-use User;
+use Author;
 
-my $u = User->new;
+my $author = Author->new;
 
-ok($u);
+ok($author);
 
-ok(not defined $u->column(undef));
-ok(not defined $u->column('id'));
+ok(not defined $author->column(undef));
+ok(not defined $author->column('id'));
 
-$u->column(id => 'boo');
-is($u->column('id'), 'boo');
+$author->column(id => 'boo');
+is($author->column('id'), 'boo');
 
-$u->column(id => undef);
-ok(not defined $u->column('id'));
+$author->column(id => undef);
+ok(not defined $author->column('id'));
 
-$u->column(id => 'bar');
-$u->column('id');
-is($u->column('id'), 'bar');
+$author->column(id => 'bar');
+$author->column('id');
+is($author->column('id'), 'bar');
 
-$u = User->new(id => 'foo');
-is($u->column('id'), 'foo');
+$author = Author->new(id => 'foo');
+is($author->column('id'), 'foo');

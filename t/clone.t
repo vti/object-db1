@@ -1,13 +1,20 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
 use Test::More tests => 2;
 
 use lib 't/lib';
 
-use User;
+use Author;
 
-my $user = User->new(name => 'foo')->create;
-ok($user->column('id'));
+my $author = Author->new(name => 'foo');
+$author->create;
 
-my $user2 = $user->clone;
-ok(not defined $user2->column('id'));
+ok($author->column('id'));
 
-$user->delete;
+my $author2 = $author->clone;
+ok(not defined $author2->column('id'));
+
+$author->delete;

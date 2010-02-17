@@ -1,30 +1,28 @@
 package Default;
+
 use strict;
+use warnings;
+
 use base 'ObjectDB';
 
-__PACKAGE__->meta(
+__PACKAGE__->schema(
     table   => 'default',
     columns => [
         'id',
-        title   => {default => 'abc'},
-        addtime => {
-            default => sub {time}
-        }
+        title   => {default => 'abc'}
     ],
     primary_keys => 'id'
 );
 
 package main;
-use Test::More tests => 4;
+
+use strict;
+use warnings;
+
+use Test::More tests => 2;
 
 my $d = Default->new;
 is($d->column('title'), 'abc');
 
 $d = Default->new(title => 'foo');
 is($d->column('title'), 'foo');
-
-$d = Default->new;
-ok($d->column('addtime') >= time);
-
-$d = Default->new(addtime => '123');
-is($d->column('addtime'), '123');

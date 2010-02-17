@@ -1,26 +1,43 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
 use Test::More tests => 8;
 
 use lib 't/lib';
 
-use User;
+use Foo;
+use Author;
 
-my $u_ = User->new(name => 'foo', password => 'boo')->create;
+my $author;
+my $authors;
+my @authors;
 
-eval { User->new->find };
-ok($@);
+# Unknown table
+ok(not defined Foo->find);
 
-$u = User->new(id => $u_->column('id'))->find;
-is($u->column('id'),       $u_->column('id'));
-is($u->column('name'),     'foo');
-is($u->column('password'), 'boo');
+# Not found multiple
+is_deeply(Author->find(where => [name => 'root']), []);
 
-$u = User->new(id => $u_->column('id'));
-$u->find;
-is($u->column('id'),       $u_->column('id'));
-is($u->column('name'),     'foo');
-is($u->column('password'), 'boo');
+# Not found single
+ok(not defined Author->find(where => [name => 'root'], single => 1));
 
-$u = User->new(id => 999)->find;
-ok(not defined $u);
+push @authors, Author->new(name => 'root', password => 'boo')->create;
+push @authors, Author->new(name => 'boot', password => 'booo')->create;
 
-User->delete_objects;
+# Find single
+$author = Author->find(where => [name => 'root'], single => 1);
+is($author->column('name'), 'root');
+
+# Find multiple by unique key
+$authors = Author->find(where => [name => 'root']);
+is(@$authors,                    1);
+is($authors->[0]->column('name'), 'root');
+
+# Find multiple by normal column
+$authors = Author->find(where => [password => 'boo']);
+is(@$authors,                    1);
+is($authors->[0]->column('name'), 'root');
+
+$_->delete for @authors;

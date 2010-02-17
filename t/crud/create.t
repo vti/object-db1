@@ -1,46 +1,41 @@
-use Test::More tests => 20;
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Test::More tests => 15;
 
 use lib 't/lib';
 
-use User;
+use TestDB;
 
-User->delete_objects;
+use Foo;
+use Author;
 
-my $u = User->new;
-$u->create;
-ok($u);
-ok($u->column('id'));
-ok(not defined $u->column('name'));
-ok(not defined $u->column('password'));
-$u->delete;
+my $foo = Foo->new;
+ok(not defined $foo->create);
+like($foo->error, qr/(no such table|doesn't exist)/);
 
-$u = User->new(name => 'foo');
-$u->create;
-ok($u);
-ok($u->column('id'));
-is($u->column('name'), 'foo');
-ok(not defined $u->column('password'));
-$u->delete;
+my $author = Author->new->create;
+ok($author);
+ok($author->column('id'));
+ok(not defined $author->column('name'));
+ok(not defined $author->column('password'));
+$author->delete;
 
-$u = User->new(name => 'boo', password => 'bar');
-$u->create;
-ok($u);
-ok($u->column('id'));
-is($u->column('name'), 'boo');
-is($u->column('password'), 'bar');
-ok($u->create);
-$u->delete;
+$author = Author->new(name => 'foo')->create;
+ok($author);
+ok($author->column('id'));
+is($author->column('name'), 'foo');
+ok(not defined $author->column('password'));
+$author->delete;
 
-$u = User->new->create;
-ok($u);
-ok($u->column('id'));
-ok(not defined $u->column('name'));
-ok(not defined $u->column('password'));
-$u->delete;
+$author = Author->new(name => 'boo', password => 'bar')->create;
+ok($author);
+ok($author->column('id'));
+is($author->column('name'),     'boo');
+is($author->column('password'), 'bar');
 
-$u = User->new(name => 'bar', password => 'foo')->create;
-ok($u->column('id'));
-is($u->column('name'), 'bar');
-is($u->column('password'), 'foo');
-
-$u->delete;
+$author->create;
+is($author->is_modified, 0);
+$author->delete;
