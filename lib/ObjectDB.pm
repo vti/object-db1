@@ -9,7 +9,7 @@ require Carp;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
-our $VERSION = '0.990101';
+our $VERSION = '0.990102';
 
 sub new {
     my $class = shift;
