@@ -9,7 +9,7 @@ require Carp;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
-our $VERSION = '0.990102';
+our $VERSION = '0.990103';
 
 sub new {
     my $class = shift;
@@ -1169,11 +1169,23 @@ __END__
 
 =head1 NAME
 
-ObjectDB - Lightweight Object-relational mapping
+ObjectDB - Lightweight Object-relational mapper
 
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
+
+ObjectDB is a lightweight, deps free (except L<DBI> of course) and flexible
+object-relational mapper.
+
+It combines all the best features from L<Class::DBI>, L<DBIx::Class> and
+L<Rose::DB> but stays as light as possible.
+
+L<ObjectDB> abstract is not that heavy as in L<Rose::DB>: columns are not
+objects, everything is pretty much straight forward and flat.
+
+Embedded SQL generator is similar to L<SQL::Abstract>, but leaves
+low-level sql generation still possible.
 
 =head1 ATTRIBUTES
 
@@ -1190,11 +1202,6 @@ Returns true when object was modified (setting columns). Otherwise false.
 =head2 C<new>
 
 Returns a new L<ObjectDB> object.
-
-=head2 C<debug>
-
-You can turn on debugging by setting OBJECTDB_DEBUG environmental variable or
-use L<DBI> debugging tools.
 
 =head2 C<init>
 
