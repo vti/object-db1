@@ -3,6 +3,7 @@ package ObjectDB;
 use strict;
 use warnings;
 
+use Digest::MD5 'md5_hex';
 use ObjectDB::SQL;
 use ObjectDB::Schema;
 require Carp;
@@ -60,7 +61,20 @@ sub init {
     if ($self->schema->relationships) {
         foreach my $rel (%{$self->schema->relationships}) {
             if (exists $values{$rel}) {
-                $self->_related->{$rel} = delete $values{$rel};
+                my $rel_values = delete $values{$rel};
+
+                my $rel_class = $self->schema->relationships->{$rel}->class;
+
+                if (ref $rel_values eq 'ARRAY') {
+                    $self->_related->{$rel} ||= [];
+                    foreach my $rel_value (@$rel_values) {
+                        push @{$self->_related->{$rel}},
+                          $rel_class->new(%$rel_value);
+                    }
+                }
+                else {
+                    $self->_related->{$rel} = $rel_class->new(%$rel_values);
+                }
             }
         }
     }
@@ -102,6 +116,15 @@ sub columns {
     }
 
     return @columns;
+}
+
+sub sign {
+    my $self = shift;
+
+    my @values = map { $_ => $self->column($_) || '' } $self->columns;
+
+    my $class = ref($self);
+    return md5_hex($class . ':' . join(',', @values));
 }
 
 sub column {
@@ -186,8 +209,8 @@ sub _create_related {
                         $self->related($rel_name => $objects);
                     }
                     else {
-                        my $rel_object = $self->create_related( $rel_name => $data->[0]);
-                        $self->related( $rel_name => $rel_object);
+                        my $rel_object = $self->create_related($rel_name => $data->[0]);
+                        $self->related($rel_name => $rel_object);
                     }
                 }
             }
@@ -345,19 +368,16 @@ sub load {
     my $rows = $sth->fetchall_arrayref;
     return unless $rows && @$rows;
 
-    my $object;
-    foreach my $row (@$rows) {
-        $object = $self->_map_row_to_object(
-            row     => $row,
-            columns => [$sql->columns],
-            with    => $with,
-            object  => $self,
-            prev    => $object
-        );
-    }
+    my $object = $self->_map_rows_to_objects(
+        rows    => $rows,
+        columns => [$sql->columns],
+        with    => $with
+    )->[0];
 
-    $object->is_in_db(1);
-    $object->is_modified(0);
+    $self->init(%{$object->to_hash});
+
+    $self->is_in_db(1);
+    $self->is_modified(0);
 
     return $self;
 }
@@ -558,22 +578,11 @@ sub find {
     my $rows = $sth->fetchall_arrayref;
     return $single ? undef : [] unless $rows && @$rows;
 
-    my $objects;
-    my $prev;
-    foreach my $row (@$rows) {
-        my $object = $class->_map_row_to_object(
-            row     => $row,
-            columns => [$sql->columns],
-            with    => $with,
-            prev    => $prev
-        );
-        $object->is_in_db(1);
-        $object->is_modified(0);
-
-        push @$objects, $object if !$prev || $object ne $prev;
-
-        $prev = $object;
-    }
+    my $objects = $class->_map_rows_to_objects(
+        rows    => $rows,
+        columns => [$sql->columns],
+        with    => $with
+    );
 
     return $single ? $objects->[0] : wantarray ? @$objects : $objects;
 }
@@ -644,6 +653,8 @@ sub _load_relationship {
 sub create_related {
     my $self = shift;
     my ($name, $args) = @_;
+
+    $args = $args->to_hash unless ref $args eq 'HASH';
 
     unless ($self->is_in_db) {
         die "can't create related objects when object is not in db";
@@ -888,8 +899,6 @@ sub set_related {
     my $self = shift;
     my ($name, $args) = @_;
 
-    my $dbh = $self->init_db;
-
     my $relationship = $self->_load_relationship($name);
 
     die "only 'many to many and one to one' are supported"
@@ -899,10 +908,13 @@ sub set_related {
     my @data;
 
     if (ref $args eq 'ARRAY') {
-        @data = @$args;
+        @data = map { ref $_ eq 'HASH' ? $_ : $_->to_hash } @$args;
     }
     elsif (ref $args eq 'HASH') {
         @data = ($args);
+    }
+    elsif (ref $args) {
+        @data = ($args->to_hash);
     }
     else {
         die 'wrong set_related params';
@@ -918,37 +930,42 @@ sub set_related {
     return $relationship->{type} eq 'one to one' ? $objects->[0] : $objects;
 }
 
-sub _map_row_to_object {
+sub _map_rows_to_objects {
     my $class = shift;
-    $class = ref($class) if ref($class);
+    $class = ref($class) if ref $class;
     my %params = @_;
 
-    my $row     = $params{row};
+    my $rows    = $params{rows};
     my $with    = $params{with};
     my $columns = $params{columns};
-    my $o       = $params{object};
-    my $prev    = $params{prev};
 
-    my %values = map { $_ => shift @$row } @$columns;
+    my $map = {};
+    my $objects = [];
 
-    my $object = $o ? $o->init(%values) : $class->new(%values);
-
-    if ($prev) {
-        my $prev_keys = join(',',
-            map { "$_=" . $prev->column($_) } $prev->schema->primary_keys);
-        my $object_keys = join(',',
-            map { "$_=" . $object->column($_) }
-              $object->schema->primary_keys);
-
-        if ($prev_keys eq $object_keys) {
-            $object = $prev;
+    foreach my $row (@$rows) {
+        my @col;
+        foreach my $col (@$columns) {
+            push @col, $col => shift @$row;
         }
-    }
 
-    if ($with) {
+        my $object = $class->new(@col);
+        $object->is_in_db(1);
+        $object->is_modified(0);
+
+        my $sign = $object->sign;
+
+        if (exists $map->{$sign}) {
+            $object = $map->{$sign};
+        }
+        else {
+            $map->{$sign} = $object;
+            push @$objects, $object;
+        }
+
+        next unless $with;
+
+        my $parent_object = $object;
         foreach my $rel_info (@$with) {
-            my $parent_object = $object;
-
             if ($rel_info->{subwith}) {
                 foreach my $subwith (@{$rel_info->{subwith}}) {
                     $parent_object = $parent_object->_related->{$subwith};
@@ -956,38 +973,41 @@ sub _map_row_to_object {
                 }
             }
 
-            foreach my $parent_object_ (
-                ref $parent_object eq 'ARRAY'
-                ? @$parent_object
-                : ($parent_object)
-              )
+            $parent_object = $parent_object->[-1] if ref $parent_object eq 'ARRAY';
+
+            my $relationship =
+              $parent_object->schema->relationships->{$rel_info->{name}};
+
+            my @values = map { $_ => shift @$row } @{$rel_info->{columns}};
+
+            my %values = @values;
+            next unless grep {defined} values %values;
+
+            my $rel_object = $relationship->class->new(@values);
+            $rel_object->is_in_db(1);
+            $rel_object->is_modified(0);
+
+            my $sign = $rel_info->{name} . $rel_object->sign;
+            next if $map->{$sign};
+
+            $map->{$sign} = $rel_object;
+
+            if (   $relationship->{type} eq 'many to one'
+                || $relationship->{type} eq 'one to one')
             {
-                my $relationship =
-                  $parent_object_->schema->relationships->{$rel_info->{name}};
-
-                %values = map { $_ => shift @$row } @{$rel_info->{columns}};
-
-                if (grep { defined $values{$_} } keys %values) {
-                    my $rel_object = $relationship->class->new(%values);
-
-                    if (   $relationship->{type} eq 'many to one'
-                        || $relationship->{type} eq 'one to one')
-                    {
-                        $parent_object_->_related->{$rel_info->{name}} =
-                          $rel_object;
-                    }
-                    else {
-                        $parent_object_->_related->{$rel_info->{name}} ||= [];
-                        push
-                          @{$parent_object_->_related->{$rel_info->{name}}},
-                          $rel_object;
-                    }
-                }
+                $parent_object->_related->{$rel_info->{name}} =
+                  $rel_object;
+            }
+            else {
+                $parent_object->_related->{$rel_info->{name}} ||= [];
+                push
+                  @{$parent_object->_related->{$rel_info->{name}}},
+                  $rel_object;
             }
         }
     }
 
-    return $object;
+    return $objects;
 }
 
 sub _resolve_with {
@@ -1023,7 +1043,8 @@ sub _resolve_with {
             }
 
             if ($relationship->type eq 'many to many') {
-                $sql->source($relationship->to_map_source);
+                my $alias = $rel_info->{subwith}->[-1];
+                $sql->source($relationship->to_map_source(alias => $alias));
             }
 
             $sql->source($relationship->to_source(rel_as => $rel_as));
@@ -1155,7 +1176,7 @@ sub to_hash {
         if (ref $rel eq 'ARRAY') {
             $hash->{$name} = [];
             foreach my $r (@$rel) {
-                push @{$hash->{$name}}, ref $r eq 'HASH' ? $r : $r->to_hash;
+                push @{$hash->{$name}}, $r->to_hash;
             }
         }
         else {

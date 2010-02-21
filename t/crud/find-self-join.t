@@ -31,4 +31,4 @@ is($child->related('parent')->column('name'), 'father');
 ok(not defined $child->related('ansestors'));
 
 # Cleanup
-$father->delete;
+#$father->delete;

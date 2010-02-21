@@ -78,6 +78,7 @@ sub to_source {
 
 sub to_map_source {
     my $self = shift;
+    my %params = @_;
 
     my $map_from = $self->map_from;
     my $map_to   = $self->map_to;
@@ -85,7 +86,7 @@ sub to_map_source {
     my ($from, $to) =
       %{$self->map_class->schema->relationships->{$map_from}->map};
 
-    my $table     = $self->orig_class->schema->table;
+    my $table     = $params{alias} || $self->orig_class->schema->table;
     my $map_table = $self->map_class->schema->table;
 
     return {
