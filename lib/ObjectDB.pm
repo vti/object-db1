@@ -1137,7 +1137,7 @@ sub _resolve_order_by {
     my $order_by = $sql->order_by;
     return unless $order_by;
 
-    my @parts = split(',', $order_by);
+    my @parts = split /\s*,\s*/ => $order_by;
 
     foreach my $part (@parts) {
         my $relationships = $self->schema->relationships;
