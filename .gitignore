@@ -1,3 +1,4 @@
+*.sw[p-z]
 blib
 Makefile
 MANIFEST
