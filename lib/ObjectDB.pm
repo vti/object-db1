@@ -1153,8 +1153,10 @@ sub to_hash {
         die "unknown '$name' relationship" unless $rel;
 
         if (ref $rel eq 'ARRAY') {
-        }
-        elsif ($rel->isa('ObjectDB::Iterator')) {
+            $hash->{$name} = [];
+            foreach my $r (@$rel) {
+                push @{$hash->{$name}}, ref $r eq 'HASH' ? $r : $r->to_hash;
+            }
         }
         else {
             $hash->{$name} = $rel->to_hash;

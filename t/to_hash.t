@@ -3,24 +3,31 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More;
+
+eval "use DBD::SQLite";
+plan skip_all => "DBD::SQLite is required for running this test" if $@;
+
+plan tests => 1;
 
 use lib 't/lib';
 
 use Author;
 
 my $author = Author->new(
-    name        => 'bar',
+    name     => 'bar',
     articles => [
         {title => 'foo', tags => {name => 'people'}},
         {title => 'bar', tags => [{name => 'unix'}, {name => 'perl'}]}
     ]
 );
 
-my $authorh = $author->to_hash;
-
-is($authorh->{name}, $author->column('name'), 'name column ok');
-
-is(ref $author->{articles}, 'ARRAY', 'found articles');
-
-done_testing;
+is_deeply(
+    $author->to_hash,
+    {   name     => 'bar',
+        articles => [
+            {title => 'foo', tags => {name => 'people'}},
+            {title => 'bar', tags => [{name => 'unix'}, {name => 'perl'}]}
+        ]
+    }
+);
