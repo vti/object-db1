@@ -10,7 +10,11 @@ use File::Spec;
 
 my $dbi = 'dbi:SQLite';
 
-sub db { $ENV{TEST_MYSQL} ? 'mysql' : 'sqlite' }
+sub db {
+    return 'sqlite' unless $ENV{TEST_MYSQL};
+
+    return 'mysql';
+}
 
 sub _database { File::Spec->catfile(File::Spec->tmpdir, 'object_db.db') }
 
@@ -45,4 +49,3 @@ sub init_db {
 }
 
 1;
-

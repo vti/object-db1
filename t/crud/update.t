@@ -3,7 +3,12 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::More;
+
+eval "use DBD::SQLite";
+plan skip_all => "DBD::SQLite is required for running this test" if $@;
+
+plan tests => 10;
 
 use lib 't/lib';
 
