@@ -6,6 +6,7 @@ use warnings;
 use Digest::MD5 'md5_hex';
 use ObjectDB::SQL;
 use ObjectDB::Schema;
+use ObjectDB::Iterator;
 require Carp;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
@@ -513,7 +514,9 @@ sub find {
 
     my $dbh = $class->init_db;
 
-    my $single = delete $args{single};
+    my $iterator = delete $args{iterator};
+    my $single   = delete $args{single};
+    $iterator = undef if $single;
 
     my @columns;
     if (my $cols = delete $args{columns}) {
@@ -575,16 +578,26 @@ sub find {
         return;
     }
 
-    my $rows = $sth->fetchall_arrayref;
-    return $single ? undef : [] unless $rows && @$rows;
+    if ($iterator) {
+        return ObjectDB::Iterator->new(
+            class   => $class,
+            sth     => $sth,
+            columns => [$sql->columns],
+            with    => $with
+        );
+    }
+    else {
+        my $rows = $sth->fetchall_arrayref;
+        return $single ? undef : [] unless $rows && @$rows;
 
-    my $objects = $class->_map_rows_to_objects(
-        rows    => $rows,
-        columns => [$sql->columns],
-        with    => $with
-    );
+        my $objects = $class->_map_rows_to_objects(
+            rows    => $rows,
+            columns => [$sql->columns],
+            with    => $with
+        );
 
-    return $single ? $objects->[0] : wantarray ? @$objects : $objects;
+        return $single ? $objects->[0] : wantarray ? @$objects : $objects;
+    }
 }
 
 sub count {
