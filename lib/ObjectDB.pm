@@ -60,7 +60,7 @@ sub init {
     }
 
     if ($self->schema->relationships) {
-        foreach my $rel (%{$self->schema->relationships}) {
+        foreach my $rel (keys %{$self->schema->relationships}) {
             if (exists $values{$rel}) {
                 my $rel_values = delete $values{$rel};
 
@@ -1395,6 +1395,8 @@ Viacheslav Tykhanovskyi, C<vti@cpan.org>.
 =head1 CREDITS
 
 In alphabetical order:
+
+Andre Vieth
 
 =head1 COPYRIGHT
 
