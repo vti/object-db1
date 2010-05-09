@@ -12,10 +12,10 @@ CREATE TABLE `article` (
  `title` varchar(40) default ''
 );
 CREATE TABLE `comment` (
+ `id` INTEGER PRIMARY KEY AUTOINCREMENT,
  `master_id` INTEGER,
  `type` varchar(40) default '',
- `content` varchar(40) default '',
- PRIMARY KEY(`master_id`, `type`)
+ `content` varchar(40) default ''
 );
 CREATE TABLE `podcast` (
  `id` INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -7,8 +7,8 @@ use base 'TestDB';
 
 __PACKAGE__->schema(
     table        => 'comment',
-    columns      => [qw/master_id type content/],
-    primary_keys => [qw/master_id type/],
+    columns      => [qw/id master_id type content/],
+    primary_keys => [qw/id/],
 
     relationships => {
         master => {
