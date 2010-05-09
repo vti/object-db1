@@ -1055,12 +1055,13 @@ sub _resolve_with {
                 die $class . ": unknown relationship '$name'";
             }
 
+            my $alias = $rel_info->{subwith}->[-1] || '';
+
             if ($relationship->type eq 'many to many') {
-                my $alias = $rel_info->{subwith}->[-1];
                 $sql->source($relationship->to_map_source(alias => $alias));
             }
 
-            $sql->source($relationship->to_source(rel_as => $rel_as));
+            $sql->source($relationship->to_source(alias => $alias, rel_as => $rel_as));
 
             if ($last) {
                 my @columns;
