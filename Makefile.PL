@@ -16,6 +16,7 @@ WriteMakefile(
         'Test::More'    => 0,
         'DBI'           => 0
     },
+    test => {TESTS => 't/*.t t/*/*.t t/*/*/*.t t/*/*/*/*.t'},
     dist  => {COMPRESS => 'gzip -9f', SUFFIX => 'gz'},
     clean => {FILES    => 'ObjectDB-*'}
 );
