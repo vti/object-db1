@@ -26,25 +26,11 @@ sub to_source {
 
     my $as = $self->name;
 
-    my $constraint = ["$as.$to" => "$table.$from"];
-
-    if ($self->join_args) {
-        my $i = 0;
-        foreach my $value (@{$self->join_args}) {
-            if ($i++ % 2) {
-                push @$constraint, $value;
-            }
-            else {
-                push @$constraint, "$as.$value";
-            }
-        }
-    }
-
     return {
         name       => $rel_table,
         join       => 'left',
         as         => $as,
-        constraint => $constraint
+        constraint => ["$as.$to" => "$table.$from"]
     };
 }
 
