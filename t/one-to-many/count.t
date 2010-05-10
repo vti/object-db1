@@ -15,8 +15,8 @@ use lib 't/lib';
 use Author;
 
 my $author = Author->new(
-    name     => 'foo',
-    articles => [{title => 'foo'}, {title => 'foo'}]
+    name     => 'bar',
+    articles => [{title => 'foo'}]
 )->create;
 
 ok($author);

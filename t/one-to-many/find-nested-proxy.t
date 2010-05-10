@@ -8,7 +8,7 @@ use Test::More;
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite is required for running this test" if $@;
 
-plan tests => 3;
+plan tests => 6;
 
 use lib 't/lib';
 
@@ -23,7 +23,19 @@ $author->create;
 
 my $authors = Author->find(with => [qw/articles articles.comments/]);
 
-is(@$authors,                                                1);
+is(@$authors, 1);
+is($authors->[0]->related('articles')->[0]->column('title'), 'foo');
+is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
+      ->column('content'),
+    'bar'
+);
+
+$authors = Author->find(
+    where => ['articles.comments.type' => 'article'],
+    with  => [qw/articles articles.comments/]
+);
+
+is(@$authors, 1);
 is($authors->[0]->related('articles')->[0]->column('title'), 'foo');
 is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
       ->column('content'),

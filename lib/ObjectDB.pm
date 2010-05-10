@@ -1132,6 +1132,7 @@ sub _resolve_columns {
 
                         $sql->source(
                             $relationship->to_source(
+                                alias  => $parent_prefix ? $prefix : '',
                                 rel_as => $parent_prefix
                             )
                         );
