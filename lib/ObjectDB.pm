@@ -100,23 +100,35 @@ sub columns {
 
     my $columns = $self->_columns;
 
-    my @columns;
-    foreach my $key ($self->schema->columns) {
-        if (exists $columns->{$key}) {
-            push @columns, $key;
+    if ( @_ ){
+        !(@_ % 2) || die 'odd number of elements';
+        my %key_value_pairs = @_;
+        while (my ($key, $value) = each %key_value_pairs) {
+            $self->column( $key, $value );
         }
-        elsif (
-            defined(
-                my $default = $self->schema->columns_map->{$key}->{default}
-            )
-          )
-        {
-            $columns->{$key} = $default;
-            push @columns, $key;
+        return $self;
+    }
+    else {
+        my @columns;
+        foreach my $key ($self->schema->columns) {
+            if (exists $columns->{$key}) {
+                push @columns, $key;
+            }
+            elsif (
+                defined(
+                    my $default = $self->schema->columns_map->{$key}->{default}
+                )
+              )
+            {
+                $columns->{$key} = $default;
+                push @columns, $key;
+            }
         }
+
+        return @columns;
+
     }
 
-    return @columns;
 }
 
 sub sign {
