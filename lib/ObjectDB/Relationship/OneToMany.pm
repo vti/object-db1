@@ -26,11 +26,19 @@ sub to_source {
 
     my $as = $self->name;
 
+    my @args = ();
+    if ($self->{where}) {
+        for (my $i = 0; $i < @{$self->{where}}; $i += 2) {
+            push @args,
+              $as . '.' . $self->{where}->[$i] => $self->{where}->[$i + 1];
+        }
+    }
+
     return {
         name       => $rel_table,
         join       => 'left',
         as         => $as,
-        constraint => ["$as.$to" => "$table.$from"]
+        constraint => ["$as.$to" => "$table.$from", @args]
     };
 }
 

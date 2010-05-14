@@ -9,6 +9,7 @@ my $rel = ObjectDB::Relationship::OneToMany->new(
     type       => 'one to many',
     orig_class => 'Author',
     class      => 'Article',
+    where      => [type => 'article'],
     map        => {id => 'author_id'}
 );
 ok($rel);
@@ -20,7 +21,7 @@ is_deeply(
     {   name       => 'article',
         as         => 'articles',
         join       => 'left',
-        constraint => ['articles.author_id' => 'author.id']
+        constraint => ['articles.author_id' => 'author.id', 'articles.type' => 'article']
     }
 );
 
