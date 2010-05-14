@@ -75,5 +75,5 @@ my $articles = Article->find(
 
 # Article should have only one comment, because a second comment with same master id
 # belongs to podcast, not article
-is( @{$articles->[0]->related('comments')}, 2);
+is( @{$articles->[0]->related('comments')}, 1);
 
