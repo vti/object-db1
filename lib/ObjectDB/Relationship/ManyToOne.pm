@@ -17,7 +17,6 @@ sub map { @_ > 1 ? $_[0]->{map} = $_[1] : $_[0]->{map} }
 
 sub to_source {
     my $self   = shift;
-    my %params = @_;
 
     my $rel_as = $self->orig_class->schema->table;
     my $table = $self->class->schema->table;

@@ -1055,7 +1055,6 @@ sub _resolve_with {
         my $relationships = $class->schema->relationships;
         my $last          = 0;
         my $name;
-        my $rel_as;
         while (1) {
             if ($rel_info->{name} =~ s/^(\w+)\.//) {
                 $name = $1;
@@ -1072,13 +1071,11 @@ sub _resolve_with {
                 die $class . ": unknown relationship '$name'";
             }
 
-            my $alias = $rel_info->{subwith}->[-1] || '';
-
             if ($relationship->type eq 'many to many') {
-                $sql->source($relationship->to_map_source(alias => $alias));
+                $sql->source($relationship->to_map_source);
             }
 
-            $sql->source($relationship->to_source(alias => $alias, rel_as => $rel_as));
+            $sql->source($relationship->to_source);
 
             if ($last) {
                 my @columns;
@@ -1102,7 +1099,6 @@ sub _resolve_with {
                 $relationships = $relationship->class->schema->relationships;
             }
 
-            $rel_as = $name;
         }
     }
 }
@@ -1126,7 +1122,6 @@ sub _resolve_columns {
             }
             else {
                 my $relationships = $self->schema->relationships;
-                my $parent_prefix;
                 while ($key =~ s/^(\w+)\.//) {
                     my $prefix = $1;
 
@@ -1136,10 +1131,7 @@ sub _resolve_columns {
                         }
 
                         $sql->source(
-                            $relationship->to_source(
-                                alias  => $parent_prefix ? $prefix : '',
-                                rel_as => $parent_prefix
-                            )
+                            $relationship->to_source
                         );
 
                         my $rel_name = $relationship->class->schema->table;
@@ -1147,8 +1139,6 @@ sub _resolve_columns {
 
                         $relationships =
                           $relationship->class->schema->relationships;
-
-                        $parent_prefix = $prefix;
                     }
                 }
 

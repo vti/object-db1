@@ -127,8 +127,6 @@ sub to_self_source {
     my $table     = $self->orig_class->schema->table;
     my $map_table = $self->map_class->schema->table;
 
-    #my $rel_as = $self->_rel_as;
-
     return {
         name       => $table,
         as         => $table,
@@ -137,26 +135,6 @@ sub to_self_source {
     };
 }
 
-sub _rel_as {
-    my $self = shift;
-
-    my $relationship;
-
-    foreach my $rel_hash ($self->class->schema->relationships) {
-        my ($rel) = values %$rel_hash;
-
-        if (   $rel->type eq 'many to many'
-            && $rel->_map_class eq $self->map_class)
-        {
-            $relationship = $rel;
-            last;
-        }
-    }
-
-    die 'can not find reverse relationship' unless $relationship;
-
-    return $relationship->name;
-}
 
 1;
 __END__
