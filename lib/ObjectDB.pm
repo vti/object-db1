@@ -340,6 +340,8 @@ sub load {
     my $self = shift;
     my %args = @_;
 
+    my $class = ref $self ? ref $self : $self;
+
     my $dbh = $self->init_db;
 
     my @columns;
@@ -351,7 +353,7 @@ sub load {
 
     Carp::croak "no primary or unique keys specified" unless @columns;
 
-    my $sql = ObjectDB::SQL->build('select');
+    my $sql = ObjectDB::SQL->build('select', class=>$class);
 
     $sql->source($self->schema->table);
     $sql->columns($self->schema->columns);
@@ -361,7 +363,7 @@ sub load {
     my $with;
     if ($with = delete $args{with}) {
         $with = [$with] unless ref $with eq 'ARRAY';
-        $self->_resolve_with($sql, $with);
+        $sql->_resolve_with($with);
     }
 
     $sql->to_string;
@@ -568,7 +570,7 @@ sub find {
     my $with;
     if ($with = delete $args{with}) {
         $with = [$with] unless ref $with eq 'ARRAY';
-        $class->_resolve_with($sql, $with);
+        $sql->_resolve_with($with);
     }
 
     $sql->merge(%args);
@@ -1038,69 +1040,6 @@ sub _map_rows_to_objects {
     }
 
     return $objects;
-}
-
-sub _resolve_with {
-    my $class = shift;
-    return unless @_;
-
-    my ($sql, $with) = @_;
-
-    foreach my $rel_info (@$with) {
-        unless (ref $rel_info eq 'HASH') {
-            $rel_info = {name => $rel_info};
-        }
-
-        my $relationship;
-        my $relationships = $class->schema->relationships;
-        my $last          = 0;
-        my $name;
-        while (1) {
-            if ($rel_info->{name} =~ s/^(\w+)\.//) {
-                $name = $1;
-
-                $rel_info->{subwith} ||= [];
-                push @{$rel_info->{subwith}}, $name;
-            }
-            else {
-                $name = $rel_info->{name};
-                $last = 1;
-            }
-
-            unless ($relationship = $relationships->{$name}) {
-                die $class . ": unknown relationship '$name'";
-            }
-
-            if ($relationship->type eq 'many to many') {
-                $sql->source($relationship->to_map_source);
-            }
-
-            $sql->source($relationship->to_source);
-
-            if ($last) {
-                my @columns;
-                if ($rel_info->{columns}) {
-                    $rel_info->{columns} = [$rel_info->{columns}]
-                      unless ref $rel_info->{columns} eq 'ARRAY';
-
-                    unshift @{$rel_info->{columns}},
-                      $relationship->class->schema->primary_keys;
-                }
-                else {
-                    $rel_info->{columns} =
-                      [$relationship->class->schema->columns];
-                }
-
-                $sql->columns(@{$rel_info->{columns}});
-
-                last;
-            }
-            else {
-                $relationships = $relationship->class->schema->relationships;
-            }
-
-        }
-    }
 }
 
 sub _resolve_order_by {

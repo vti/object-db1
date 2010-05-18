@@ -183,6 +183,72 @@ sub _resolve_columns {
 }
 
 
+sub _resolve_with {
+    my $self = shift;
+    return unless @_;
+
+    my ($with) = @_;
+    my $class = $self->class;
+
+    foreach my $rel_info (@$with) {
+        unless (ref $rel_info eq 'HASH') {
+            $rel_info = {name => $rel_info};
+        }
+
+        my $relationship;
+        my $relationships = $class->schema->relationships;
+        my $last          = 0;
+        my $name;
+        while (1) {
+            if ($rel_info->{name} =~ s/^(\w+)\.//) {
+                $name = $1;
+
+                $rel_info->{subwith} ||= [];
+                push @{$rel_info->{subwith}}, $name;
+            }
+            else {
+                $name = $rel_info->{name};
+                $last = 1;
+            }
+
+            unless ($relationship = $relationships->{$name}) {
+                die $class . ": unknown relationship '$name'";
+            }
+
+            if ($relationship->type eq 'many to many') {
+                $self->source($relationship->to_map_source);
+            }
+
+            $self->source($relationship->to_source);
+
+            if ($last) {
+                my @columns;
+                if ($rel_info->{columns}) {
+                    $rel_info->{columns} = [$rel_info->{columns}]
+                      unless ref $rel_info->{columns} eq 'ARRAY';
+
+                    unshift @{$rel_info->{columns}},
+                      $relationship->class->schema->primary_keys;
+                }
+                else {
+                    $rel_info->{columns} =
+                      [$relationship->class->schema->columns];
+                }
+
+                $self->columns(@{$rel_info->{columns}});
+
+                last;
+            }
+            else {
+                $relationships = $relationship->class->schema->relationships;
+            }
+
+        }
+    }
+}
+
+
+
 1;
 __END__
 
