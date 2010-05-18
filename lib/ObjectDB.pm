@@ -544,7 +544,7 @@ sub find {
         @columns = $class->schema->columns;
     }
 
-    my $sql = ObjectDB::SQL->build('select');
+    my $sql = ObjectDB::SQL->build('select', class=>$class);
     $sql->source($class->schema->table);
     $sql->columns(@columns);
 
@@ -573,7 +573,7 @@ sub find {
 
     $sql->merge(%args);
 
-    $class->_resolve_columns($sql);
+    $sql->_resolve_columns;
     $class->_resolve_order_by($sql);
 
     $sql->limit(1) if $single;
@@ -627,7 +627,7 @@ sub count {
     my @pk = map {"`$table`.`$_`"} $class->schema->primary_keys;
     my $pk = join(',', @pk);
 
-    my $sql = ObjectDB::SQL->build('select');
+    my $sql = ObjectDB::SQL->build('select', class=>$class);
     $sql->source($class->schema->table);
     $sql->columns(\"COUNT(DISTINCT $pk)");#"
     $sql->to_string;
@@ -638,7 +638,7 @@ sub count {
 
     $sql->merge(%args);
 
-    $class->_resolve_columns($sql);
+    $sql->_resolve_columns;
 
     $sql->to_string;
 
@@ -1101,53 +1101,6 @@ sub _resolve_with {
 
         }
     }
-}
-
-sub _resolve_columns {
-    my $self = shift;
-    return unless @_;
-
-    my ($sql) = @_;
-
-    my $where = $sql->where;
-    return unless $where;
-
-    if (ref $where eq 'ARRAY') {
-        my $count = 0;
-        while (my ($key, $value) = @{$where}[$count, $count + 1]) {
-            last unless $key;
-
-            if (ref $key eq 'SCALAR') {
-                $count++;
-            }
-            else {
-                my $relationships = $self->schema->relationships;
-                while ($key =~ s/^(\w+)\.//) {
-                    my $prefix = $1;
-
-                    if (my $relationship = $relationships->{$prefix}) {
-                        if ($relationship->type eq 'many to many') {
-                            $sql->source($relationship->to_map_source);
-                        }
-
-                        $sql->source(
-                            $relationship->to_source
-                        );
-
-                        my $rel_name = $relationship->class->schema->table;
-                        $where->[$count] = "$rel_name.$key";
-
-                        $relationships =
-                          $relationship->class->schema->relationships;
-                    }
-                }
-
-                $count += 2;
-            }
-        }
-    }
-
-    return $self;
 }
 
 sub _resolve_order_by {

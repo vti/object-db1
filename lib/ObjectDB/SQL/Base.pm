@@ -16,6 +16,7 @@ sub new {
     return $self;
 }
 
+sub class  { @_ > 1 ? $_[0]->{class}  = $_[1] : $_[0]->{class} }
 sub driver { @_ > 1 ? $_[0]->{driver} = $_[1] : $_[0]->{driver} }
 sub bind   { @_ > 1 ? $_[0]->{bind}   = $_[1] : $_[0]->{bind} }
 
@@ -134,6 +135,53 @@ sub to_string {
 
     die 'must be overloaded';
 }
+
+
+sub _resolve_columns {
+    my $self = shift;
+
+    my $where = $self->where;
+    my $class = $self->class;
+    return unless $where;
+
+    if (ref $where eq 'ARRAY') {
+        my $count = 0;
+        while (my ($key, $value) = @{$where}[$count, $count + 1]) {
+            last unless $key;
+
+            if (ref $key eq 'SCALAR') {
+                $count++;
+            }
+            else {
+                my $relationships = $class->schema->relationships;
+                while ($key =~ s/^(\w+)\.//) {
+                    my $prefix = $1;
+
+                    if (my $relationship = $relationships->{$prefix}) {
+                        if ($relationship->type eq 'many to many') {
+                            $self->source($relationship->to_map_source);
+                        }
+
+                        $self->source(
+                            $relationship->to_source
+                        );
+
+                        my $rel_name = $relationship->class->schema->table;
+                        $where->[$count] = "$rel_name.$key";
+
+                        $relationships =
+                          $relationship->class->schema->relationships;
+                    }
+                }
+
+                $count += 2;
+            }
+        }
+    }
+
+    return $self;
+}
+
 
 1;
 __END__
