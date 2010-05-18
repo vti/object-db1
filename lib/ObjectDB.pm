@@ -576,7 +576,7 @@ sub find {
     $sql->merge(%args);
 
     $sql->_resolve_columns;
-    $class->_resolve_order_by($sql);
+    $sql->_resolve_order_by;
 
     $sql->limit(1) if $single;
     $sql->to_string;
@@ -1040,36 +1040,6 @@ sub _map_rows_to_objects {
     }
 
     return $objects;
-}
-
-sub _resolve_order_by {
-    my $self = shift;
-    return unless @_;
-
-    my ($sql) = @_;
-
-    my $order_by = $sql->order_by;
-    return unless $order_by;
-
-    my @parts = split /\s*,\s*/ => $order_by;
-
-    foreach my $part (@parts) {
-        my $relationships = $self->schema->relationships;
-        while ($part =~ s/^(\w+)\.//) {
-            my $prefix = $1;
-
-            if (my $relationship = $relationships->{$prefix}) {
-                my $rel_table = $relationship->related_table;
-                $part = "$rel_table.$part";
-
-                $relationships = $relationship->class->schema->relationships;
-            }
-        }
-    }
-
-    $sql->order_by(join(', ', @parts));
-
-    return $self;
 }
 
 sub to_hash {
