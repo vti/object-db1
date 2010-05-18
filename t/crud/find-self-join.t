@@ -6,13 +6,15 @@ use warnings;
 use Test::More;
 
 eval "use DBD::SQLite";
-#plan skip_all => "DBD::SQLite is required for running this test" if $@;
-plan skip_all => 1;
+plan skip_all => "DBD::SQLite is required for running this test" if $@;
+#plan skip_all => 1;
 plan tests => 8;
 
 use lib 't/lib';
 
 use Family;
+
+$ENV{OBJECTDB_DEBUG}=1;
 
 my $father = Family->new(name => 'father')->create;
 ok($father->create_related(ansestors => {name => 'child'}));
@@ -32,3 +34,4 @@ ok(not defined $child->related('ansestors'));
 
 # Cleanup
 #$father->delete;
+$ENV{OBJECTDB_DEBUG}=0;

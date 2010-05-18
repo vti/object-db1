@@ -24,9 +24,15 @@ sub to_source {
 
     my ($from, $to) = %{$self->{map}};
 
-    my $as = $self->name;
+    my $as;
+    if ( $table eq $rel_as ){
+        $as = $self->name;
+    }
+    else {
+        $as = $table;
+    }
 
-    my $constraint = ["$table.$to" => "$rel_as.$from"];
+    my $constraint = ["$as.$to" => "$rel_as.$from"];
 
     if ($self->join_args) {
         my $i = 0;
@@ -35,14 +41,14 @@ sub to_source {
                 push @$constraint, $value;
             }
             else {
-                push @$constraint, "$table.$value";
+                push @$constraint, "$as.$value";
             }
         }
     }
 
     return {
         name       => $table,
-        as         => $table,
+        as         => $as,
         join       => 'left',
         constraint => $constraint
     };

@@ -24,21 +24,28 @@ sub to_source {
 
     my ($from, $to) = %{$self->map};
 
-    my $as = $self->name;
+    my $as;
+    if ( $table eq $rel_table ){
+        $as = $self->name;
+    }
+    else {
+        $as = $rel_table;
+    }
+
 
     my @args = ();
     if ($self->{where}) {
         for (my $i = 0; $i < @{$self->{where}}; $i += 2) {
             push @args,
-              $rel_table . '.' . $self->{where}->[$i] => $self->{where}->[$i + 1];
+              $as . '.' . $self->{where}->[$i] => $self->{where}->[$i + 1];
         }
     }
 
     return {
         name       => $rel_table,
         join       => 'left',
-        as         => $rel_table,
-        constraint => ["$rel_table.$to" => "$table.$from", @args]
+        as         => $as,
+        constraint => ["$as.$to" => "$table.$from", @args]
     };
 }
 
