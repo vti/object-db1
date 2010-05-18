@@ -574,10 +574,8 @@ sub find {
     }
 
     $sql->merge(%args);
-
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
-
     $sql->limit(1) if $single;
     $sql->to_string;
 
@@ -639,9 +637,7 @@ sub count {
     }
 
     $sql->merge(%args);
-
     $sql->_resolve_columns;
-
     $sql->to_string;
 
     warn "$sql" if $ENV{OBJECTDB_DEBUG};
