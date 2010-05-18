@@ -19,7 +19,7 @@ sub to_source {
     my $self = shift;
     my %params = @_;
 
-    my $table     = $params{alias} || $self->orig_class->schema->table;
+    my $table     = $self->orig_class->schema->table;
     my $rel_table = $self->class->schema->table;
 
     my ($from, $to) = %{$self->map};
@@ -30,15 +30,15 @@ sub to_source {
     if ($self->{where}) {
         for (my $i = 0; $i < @{$self->{where}}; $i += 2) {
             push @args,
-              $as . '.' . $self->{where}->[$i] => $self->{where}->[$i + 1];
+              $rel_table . '.' . $self->{where}->[$i] => $self->{where}->[$i + 1];
         }
     }
 
     return {
         name       => $rel_table,
         join       => 'left',
-        as         => $as,
-        constraint => ["$as.$to" => "$table.$from", @args]
+        as         => $rel_table,
+        constraint => ["$rel_table.$to" => "$table.$from", @args]
     };
 }
 

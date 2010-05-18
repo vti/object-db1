@@ -19,9 +19,9 @@ is($rel->related_table, 'article');
 is_deeply(
     $rel->to_source,
     {   name       => 'article',
-        as         => 'articles',
+        as         => 'article',
         join       => 'left',
-        constraint => ['articles.author_id' => 'author.id', 'articles.type' => 'article']
+        constraint => ['article.author_id' => 'author.id', 'article.type' => 'article']
     }
 );
 

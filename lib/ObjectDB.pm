@@ -305,9 +305,10 @@ sub create {
 
     my @values = map { $self->column($_) } $self->columns;
 
-    warn "$sql" if DEBUG;
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
+    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
         $self->error($DBI::errstr);
         return;
@@ -364,9 +365,10 @@ sub load {
     }
 
     $sql->to_string;
-    warn "$sql" if DEBUG;
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
+    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
         $self->error($DBI::errstr);
         return;
@@ -442,9 +444,10 @@ sub update {
     $sql->where([@{$args{where}}]) if $args{where};
     $sql->to_string;
 
-    warn "$sql" if DEBUG;
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
+    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
         $self->error($DBI::errstr);
         return;
@@ -484,11 +487,12 @@ sub delete {
         $sql->where([@{$args{where}}]) if $args{where};
         $sql->to_string;
 
-        warn "$sql" if DEBUG;
+        warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
         $self->_delete_related;
 
         my $sth = $dbh->prepare("$sql");
+    if ($dbh->errstr){warn $sql; }
         unless ($sth) {
             $self->error($DBI::errstr);
             return;
@@ -575,9 +579,10 @@ sub find {
     $sql->limit(1) if $single;
     $sql->to_string;
 
-    warn "$sql" if DEBUG;
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
+    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
         #$self->error($DBI::errstr);
         return;
@@ -624,7 +629,7 @@ sub count {
 
     my $sql = ObjectDB::SQL->build('select');
     $sql->source($class->schema->table);
-    $sql->columns(\"COUNT(DISTINCT $pk)");
+    $sql->columns(\"COUNT(DISTINCT $pk)");#"
     $sql->to_string;
 
     if (my $sources = delete $args{source}) {
@@ -637,7 +642,7 @@ sub count {
 
     $sql->to_string;
 
-    warn "$sql" if DEBUG;
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
     return unless $hash_ref && ref $hash_ref eq 'HASH';
@@ -1137,7 +1142,7 @@ sub _resolve_columns {
                             )
                         );
 
-                        my $rel_name = $relationship->name;
+                        my $rel_name = $relationship->class->schema->table;
                         $where->[$count] = "$rel_name.$key";
 
                         $relationships =

@@ -24,11 +24,11 @@ is($rel->related_table, 'author');
 is_deeply(
     $rel->to_source,
     {   name       => 'author',
-        as         => 'author_rel',
+        as         => 'author',
         join       => 'left',
         constraint => [
-            'author_rel.id'    => 'article.author_id',
-            'author_rel.title' => 'foo'
+            'author.id'    => 'article.author_id',
+            'author.title' => 'foo'
         ]
     }
 );
@@ -36,11 +36,11 @@ is_deeply(
 is_deeply(
     $rel->to_source(rel_as => 'articles'),
     {   name       => 'author',
-        as         => 'author_rel',
+        as         => 'author',
         join       => 'left',
         constraint => [
-            'author_rel.id'    => 'articles.author_id',
-            'author_rel.title' => 'foo'
+            'author.id'    => 'article.author_id',
+            'author.title' => 'foo'
         ]
     }
 );

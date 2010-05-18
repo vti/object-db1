@@ -70,9 +70,9 @@ sub to_source {
 
     return {
         name       => $table,
-        as         => $as,
+        as         => $table,
         join       => 'left',
-        constraint => ["$as.$to" => "$map_table.$from"]
+        constraint => ["$table.$to" => "$map_table.$from"]
     };
 }
 
@@ -86,7 +86,7 @@ sub to_map_source {
     my ($from, $to) =
       %{$self->map_class->schema->relationships->{$map_from}->map};
 
-    my $table     = $params{alias} || $self->orig_class->schema->table;
+    my $table     = $self->orig_class->schema->table;
     my $map_table = $self->map_class->schema->table;
 
     return {
@@ -127,13 +127,13 @@ sub to_self_source {
     my $table     = $self->orig_class->schema->table;
     my $map_table = $self->map_class->schema->table;
 
-    my $rel_as = $self->_rel_as;
+    #my $rel_as = $self->_rel_as;
 
     return {
         name       => $table,
-        as         => $rel_as,
+        as         => $table,
         join       => 'left',
-        constraint => ["$rel_as.$to" => "$map_table.$from"]
+        constraint => ["$table.$to" => "$map_table.$from"]
     };
 }
 

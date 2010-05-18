@@ -19,14 +19,14 @@ sub to_source {
     my $self   = shift;
     my %params = @_;
 
-    my $rel_as = $params{rel_as} || $self->orig_class->schema->table;
+    my $rel_as = $self->orig_class->schema->table;
     my $table = $self->class->schema->table;
 
     my ($from, $to) = %{$self->{map}};
 
     my $as = $self->name;
 
-    my $constraint = ["$as.$to" => "$rel_as.$from"];
+    my $constraint = ["$table.$to" => "$rel_as.$from"];
 
     if ($self->join_args) {
         my $i = 0;
@@ -35,14 +35,14 @@ sub to_source {
                 push @$constraint, $value;
             }
             else {
-                push @$constraint, "$as.$value";
+                push @$constraint, "$table.$value";
             }
         }
     }
 
     return {
         name       => $table,
-        as         => $as,
+        as         => $table,
         join       => 'left',
         constraint => $constraint
     };
