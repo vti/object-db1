@@ -37,19 +37,23 @@ sub source {
 
     $source->{columns} ||= [];
 
+    # Alias: only add source when alias not in _sources as alias or name
     if (my $as = $source->{as}) {
-        return $self
-          if scalar(grep { $_->{name} eq $as } @{$self->_sources})
-              || scalar(
+        if ( !scalar( grep { $_->{name} eq $as } @{$self->_sources}) &&
+             !scalar(
                 grep { $_->{as} && ($_->{as} eq $as) } @{$self->_sources}
-              );
+             ) 
+        ){
+            push @{$self->_sources}, $source;
+        }
+    }
+    # No alias: only add source when name not in _sources
+    elsif (!scalar(grep {$_->{name} eq $source->{name}} @{$self->_sources})){
+        push @{$self->_sources}, $source;
     }
 
-    push @{$self->_sources}, $source
-      unless scalar(grep { $_->{name} eq $source->{name} } @{$self->_sources})
-          && !$source->{as};
-
     return $self;
+
 }
 
 sub columns {
