@@ -566,7 +566,9 @@ sub find {
         $sql->_resolve_with($with);
     }
 
-    $sql->merge(%args);
+    $sql->where( delete $args{where} );
+    $sql->order_by( delete $args{order_by} );
+
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
     $sql->limit(1) if $single;
@@ -628,7 +630,9 @@ sub count {
         $sql->source($_) foreach @$sources;
     }
 
-    $sql->merge(%args);
+    $sql->where( delete $args{where} );
+    $sql->with( delete $args{with} );
+
     $sql->_resolve_columns;
     $sql->to_string;
 

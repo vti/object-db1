@@ -26,17 +26,6 @@ sub _where_string {
     @_ > 1 ? $_[0]->{_where_string} = $_[1] : $_[0]->{_where_string};
 }
 
-sub merge {
-    my $self   = shift;
-    my %params = @_;
-
-    foreach my $key (keys %params) {
-        $self->$key($params{$key});
-    }
-
-    return $self;
-}
-
 sub _where_to_string {
     my $self = shift;
     my ($where, $default_prefix) = @_;
