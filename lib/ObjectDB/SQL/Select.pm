@@ -29,27 +29,42 @@ sub where_logic {
 sub _sources { @_ > 1 ? $_[0]->{_sources} = $_[1] : $_[0]->{_sources} }
 sub _columns { @_ > 1 ? $_[0]->{_columns} = $_[1] : $_[0]->{_columns} }
 
+
+# Add sources, make sure that main source is loaded if schema class is available
 sub source {
     my $self   = shift;
-    my ($source) = @_;
+    my $source = shift;
 
-
-    # Use table name of schema class as default..
-    # .. if no sources have been defined so far
-    if ( !defined $source || $source eq '' ){
-        if ( !scalar(@{$self->_sources}) ){
-            $source = $self->class->schema->table;
-        }
-        else {
-            return $self;
-        }
+    # Create main source if request comes from a schema class
+    # and no source has been defined so far
+    if ( $self->class && !@{$self->_sources} ){
+        my $main_source = $self->class->schema->table;
+        $self->_save_source($main_source);
     }
 
+    # Save source that has been passed (if any)
+    if ( defined $source && $source ne '' ){
+        $self->_save_source($source);
+    }
+
+    # Return
+    return $self;
+
+}
+
+
+# Save and validate source data
+sub _save_source {
+    my $self   = shift;
+    my $source = shift;
+
+    # Make source a hash ref
     $source = {name => $source} unless ref $source eq 'HASH';
 
+    # Initialize key for columns
     $source->{columns} ||= [];
 
-    # Alias: only add source when alias not in _sources as alias or name
+    # Alias: only add source when alias not in "_sources" as alias or name
     if (my $as = $source->{as}) {
         if ( !scalar( grep { $_->{name} eq $as } @{$self->_sources}) &&
              !scalar(
@@ -59,11 +74,12 @@ sub source {
             push @{$self->_sources}, $source;
         }
     }
-    # No alias: only add source when name not in _sources
+    # No alias: only add source when name not in "_sources"
     elsif (!scalar(grep {$_->{name} eq $source->{name}} @{$self->_sources})){
         push @{$self->_sources}, $source;
     }
 
+    # Return
     return $self;
 
 }
@@ -71,16 +87,32 @@ sub source {
 sub columns {
     my $self = shift;
 
-    if (@_) {
-        die 'first define source' unless @{$self->_sources};
+    ### Setter
+    if (@_ && defined $_[0] && $_[0] ne '') {
 
+        # Create main source if request comes from a schema class
+        # and no source has been defined so far
+        if ( $self->class && !@{$self->_sources} ){
+            $self->source;
+        }
+        elsif ( !@{$self->_sources} ){
+            die 'first define source';
+        }
+
+        # Save columns to last source
         $self->_sources->[-1]->{columns} =
           ref $_[0] eq 'ARRAY' ? $_[0] : [@_];
 
+        # Return
         return $self;
+
     }
 
+
+    # Getter: return columns of main (first) source if no params passed
     my @column_names = ();
+
+    return @column_names unless @{$self->_sources}; 
 
     foreach my $col (@{$self->_sources->[0]->{columns}}) {
         if (ref $col eq 'SCALAR') {
@@ -94,12 +126,25 @@ sub columns {
     }
 
     return @column_names;
+
 }
+
 
 sub to_string {
     my $self = shift;
 
     my $query = "";
+
+    # Create main source if request comes from a schema class
+    # and no source has been defined so far
+    if ( $self->class && !@{$self->_sources} ){
+        $self->source;
+    }
+
+    # Add columns for main source if not already added so far
+    if ( $self->class && !@{$self->_sources->[0]->{columns}} ){
+        $self->_sources->[0]->{columns} = [$self->class->schema->columns];
+    }
 
     $query .= 'SELECT ';
 

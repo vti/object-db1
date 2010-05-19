@@ -1,8 +1,98 @@
-use Test::More tests => 21;
+use Test::More tests => 35;
+
+use lib 't/lib';
 
 use ObjectDB::SQL;
 
-my $sql = ObjectDB::SQL->build('select');
+use Author;
+
+###### SQL with passed schema class
+
+# passed no source, but class and columns
+my $sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->columns('name');
+$sql->where([id => 2]);
+is("$sql", "SELECT `name` FROM `author` WHERE (`id` = ?)");
+
+# passed no source and no columns, but class
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->where([id => 2]);
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# same as before, but with undef columns
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->where([id => 2]);
+$sql->columns(undef);
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# same as before, but with empty columns
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->where([id => 2]);
+$sql->columns('');
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# same as before, but with not params in columns
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->where([id => 2]);
+$sql->columns();
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# same as before, but with undef source
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->source(undef);
+$sql->where([id => 2]);
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# same as before, but with empty source
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->source('');
+$sql->where([id => 2]);
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# same as before, but with no params in source
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->source();
+$sql->where([id => 2]);
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# passed no columns, but source and class
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->source('author');
+$sql->where([id => 2]);
+is("$sql", "SELECT `id`, `name`, `password` FROM `author` WHERE (`id` = ?)");
+
+# passed no main source and no columns, but an additional source
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->source('articles');
+$sql->where([id => 2]);
+is("$sql", "SELECT `author`.`id`, `author`.`name`, `author`.`password` FROM `author`, `articles` WHERE (`author`.`id` = ?)");
+
+# passed no main source and no columns, but an additional source with columns
+$sql = ObjectDB::SQL->build('select', class=>'Author');
+$sql->source('articles');
+$sql->columns('title');
+$sql->where([id => 2]);
+is("$sql", "SELECT `author`.`id`, `author`.`name`, `author`.`password`, `articles`.`title` FROM `author`, `articles` WHERE (`author`.`id` = ?)");
+
+
+###### SQL without passed schema class
+
+# Pass no source
+$sql = ObjectDB::SQL->build('select');
+$sql->source();
+ok ( !@{$sql->_sources} );
+
+# Pass empty source
+$sql = ObjectDB::SQL->build('select');
+$sql->source('');
+ok ( !@{$sql->_sources} );
+
+# Pass undef source
+$sql = ObjectDB::SQL->build('select');
+$sql->source(undef);
+ok ( !@{$sql->_sources} );
+
+$sql = ObjectDB::SQL->build('select');
 $sql->source('foo');
 $sql->columns('foo');
 $sql->where([id => 2]);
