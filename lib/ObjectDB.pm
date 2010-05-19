@@ -359,7 +359,7 @@ sub load {
     $sql->order_by();
 
     my $with;
-    if ($with = delete $args{with}) {
+    if ($with = $args{with}) {
         $with = [$with] unless ref $with eq 'ARRAY';
         $sql->_resolve_with($with);
     }
@@ -530,21 +530,21 @@ sub find {
 
     my $dbh = $class->init_db;
 
-    my $iterator = delete $args{iterator};
-    my $single   = delete $args{single};
+    my $iterator = $args{iterator};
+    my $single   = $args{single};
     $iterator = undef if $single;
 
     my $sql = ObjectDB::SQL->build('select', class=>$class);
 
 
-    if (my $cols = delete $args{columns}) {
+    if (my $cols = $args{columns}) {
         my @columns = ref $cols ? @$cols : ($cols);
         unshift @columns, $class->schema->primary_keys;
         $sql->columns(@columns);
     }
 
-    my $page = delete $args{page};
-    my $page_size = delete $args{page_size} || 10;
+    my $page = $args{page};
+    my $page_size = $args{page_size} || 10;
 
     unless ($single) {
         if (defined $page) {
@@ -554,20 +554,20 @@ sub find {
         }
     }
 
-    if (my $sources = delete $args{source}) {
+    if (my $sources = $args{source}) {
         foreach my $source (@$sources) {
             $sql->source($source);
         }
     }
 
     my $with;
-    if ($with = delete $args{with}) {
+    if ($with = $args{with}) {
         $with = [$with] unless ref $with eq 'ARRAY';
         $sql->_resolve_with($with);
     }
 
-    $sql->where( delete $args{where} );
-    $sql->order_by( delete $args{order_by} );
+    $sql->where( $args{where} );
+    $sql->order_by( $args{order_by} );
 
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
@@ -626,12 +626,12 @@ sub count {
     $sql->columns(\"COUNT(DISTINCT $pk)");#"
     $sql->to_string;
 
-    if (my $sources = delete $args{source}) {
+    if (my $sources = $args{source}) {
         $sql->source($_) foreach @$sources;
     }
 
-    $sql->where( delete $args{where} );
-    $sql->with( delete $args{with} );
+    $sql->where( $args{where} );
+    $sql->with( $args{with} );
 
     $sql->_resolve_columns;
     $sql->to_string;
