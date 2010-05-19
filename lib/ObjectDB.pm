@@ -355,7 +355,7 @@ sub load {
 
     my $sql = ObjectDB::SQL->build('select', class=>$class);
 
-    $sql->source($self->schema->table);
+    $sql->source;
     $sql->columns($self->schema->columns);
     $sql->where([map { $_ => $self->column($_) } @columns]);
     $sql->order_by();
@@ -547,7 +547,7 @@ sub find {
     }
 
     my $sql = ObjectDB::SQL->build('select', class=>$class);
-    $sql->source($class->schema->table);
+    $sql->source;
     $sql->columns(@columns);
 
     my $page = delete $args{page};
@@ -628,7 +628,7 @@ sub count {
     my $pk = join(',', @pk);
 
     my $sql = ObjectDB::SQL->build('select', class=>$class);
-    $sql->source($class->schema->table);
+    $sql->source;
     $sql->columns(\"COUNT(DISTINCT $pk)");#"
     $sql->to_string;
 

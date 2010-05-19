@@ -30,8 +30,20 @@ sub _sources { @_ > 1 ? $_[0]->{_sources} = $_[1] : $_[0]->{_sources} }
 sub _columns { @_ > 1 ? $_[0]->{_columns} = $_[1] : $_[0]->{_columns} }
 
 sub source {
-    my $self = shift;
+    my $self   = shift;
     my ($source) = @_;
+
+
+    # Use table name of schema class as default..
+    # .. if no sources have been defined so far
+    if ( !defined $source || $source eq '' ){
+        if ( !scalar(@{$self->_sources}) ){
+            $source = $self->class->schema->table;
+        }
+        else {
+            return $self;
+        }
+    }
 
     $source = {name => $source} unless ref $source eq 'HASH';
 
