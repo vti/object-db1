@@ -32,6 +32,8 @@ is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
 
 
 # feature on wish list: autoload articles if only articles.comments is requested
+# maybe, load articles without any columns or just primary key columns in
+# this case
 #$authors = Author->find(with => [qw/articles.comments/]);
 #is(@$authors, 1);
 #is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
