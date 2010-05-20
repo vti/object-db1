@@ -1001,6 +1001,8 @@ sub _map_rows_to_objects {
 
             my $relationship =
               $parent_object->schema->relationships->{$rel_info->{name}};
+#warn $parent_object->schema->table;
+#warn $rel_info->{name};
 
             my @values = map { $_ => shift @$row } @{$rel_info->{columns}};
 

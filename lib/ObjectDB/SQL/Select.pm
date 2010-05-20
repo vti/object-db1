@@ -44,7 +44,7 @@ sub source {
 
     # Save source that has been passed (if any)
     if ( defined $source && $source ne '' ){
-        $self->_save_source($source);
+        return $self->_save_source($source);
     }
 
     # Return
@@ -64,6 +64,8 @@ sub _save_source {
     # Initialize key for columns
     $source->{columns} ||= [];
 
+    my $success;
+
     # Alias: only add source when alias not in "_sources" as alias or name
     if (my $as = $source->{as}) {
         if ( !scalar( grep { $_->{name} eq $as } @{$self->_sources}) &&
@@ -72,12 +74,16 @@ sub _save_source {
              ) 
         ){
             push @{$self->_sources}, $source;
+            $success = 1;
         }
     }
     # No alias: only add source when name not in "_sources"
     elsif (!scalar(grep {$_->{name} eq $source->{name}} @{$self->_sources})){
         push @{$self->_sources}, $source;
+        $success = 1;
     }
+
+    return undef unless $success;
 
     # Return
     return $self;

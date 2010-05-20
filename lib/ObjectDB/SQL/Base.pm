@@ -172,11 +172,14 @@ sub _resolve_columns {
 
 
 sub _resolve_with {
+#warn "############_resolve_with";
     my $self = shift;
     return unless @_;
 
     my ($with) = @_;
     my $class = $self->class;
+
+my @new_rel_info;
 
     foreach my $rel_info (@$with) {
         unless (ref $rel_info eq 'HASH') {
@@ -207,9 +210,9 @@ sub _resolve_with {
                 $self->source($relationship->to_map_source);
             }
 
-            $self->source($relationship->to_source);
+            my $success = $self->source($relationship->to_source);
 
-            if ($last) {
+            if ($last && $success) {
                 my @columns;
                 if ($rel_info->{columns}) {
                     $rel_info->{columns} = [$rel_info->{columns}]
@@ -227,12 +230,31 @@ sub _resolve_with {
 
                 last;
             }
+            elsif ( $last ){
+                last;
+            }
             else {
+
+                my $new_rel_info = {
+                    name => $name,
+                    subwith => [],
+                    columns => [$relationship->class->schema->primary_keys]
+                };
+
+                unshift @new_rel_info, $new_rel_info if $success;
+
+                $self->columns($relationship->class->schema->primary_keys) if $success;
+
                 $relationships = $relationship->class->schema->relationships;
             }
 
         }
     }
+
+    foreach my $new_rel_info ( @new_rel_info ){
+        unshift @$with, $new_rel_info;
+    }
+
 }
 
 sub _resolve_order_by {
