@@ -257,36 +257,6 @@ sub _resolve_with {
 
 }
 
-sub _resolve_order_by {
-    my $self = shift;
-
-    my $class = $self->class;
-
-    my $order_by = $self->order_by;
-    return unless $order_by;
-
-    my @parts = split /\s*,\s*/ => $order_by;
-
-    foreach my $part (@parts) {
-        my $relationships = $class->schema->relationships;
-        while ($part =~ s/^(\w+)\.//) {
-            my $prefix = $1;
-
-            if (my $relationship = $relationships->{$prefix}) {
-                my $rel_table = $relationship->related_table;
-                $part = "$rel_table.$part";
-
-                $relationships = $relationship->class->schema->relationships;
-            }
-        }
-    }
-
-    $self->order_by(join(', ', @parts));
-
-    return $self;
-}
-
-
 
 1;
 __END__
