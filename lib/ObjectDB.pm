@@ -1026,7 +1026,7 @@ sub _map_rows_to_objects {
 # TO DO: Test
             if ( $map->{$sign} ){
             unshift ( @recent_parents, $map->{$sign} );
-#warn "++++++++++++++NEXT: ".ref($rel_object) if $ENV{OBJECTDB_DEBUG};
+#warn "++++++++++++++NEXT: ".ref($rel_object);
                 next;
             }
 

@@ -8,7 +8,7 @@ use Test::More;
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite is required for running this test" if $@;
 
-plan tests => 60;
+plan tests => 68;
 
 use lib 't/lib';
 
@@ -24,12 +24,25 @@ Category->new( id=>1, title=>"stuff1")->create;
 Category->new( id=>2, title=>"stuff2")->create;
 Category->new( id=>3, title=>"stuff3")->create;
 
+# Add at least two comments to make sure that if ( $map->{$sign} ) in
+# _map_rows_to_objects is tested
 my $author = Author->new(
     name     => 'foo',
     articles => [
-        { title => 'article title', comments => [{content => 'comment content'}], category_id=>1 },
+        { title => 'article title',
+            comments => [
+                {content => 'comment content'},
+                {content => 'comment content second'}
+            ],
+          category_id=>1
+        },
         { title => 'article title2', category_id=>2 },
-        { title => 'article title3', comments => [{content => 'comment content3'}], category_id=>3 }
+        { title => 'article title3',
+            comments => [
+                {content => 'comment content3'},
+            ],
+          category_id=>3
+        }
     ]
 )->create;
 
@@ -88,9 +101,12 @@ Podcast->new( id=>$comment_master_id, title=>'pod title' )->create;
 $authors = Author
     ->find(with => [qw/articles articles.comments articles.comments.podcast/]);
 is( @$authors, 1);
+is ( @{$authors->[0]->related('articles')}, 3 );
 is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
 is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
         ->column('content'), 'comment content' );
+is( $authors->[0]->related('articles')->[0]->related('comments')->[1]
+        ->column('content'), 'comment content second' );
 is( $authors->[0]
         ->related('articles')->[0]
         ->related('comments')->[0]
@@ -103,9 +119,12 @@ is( $authors->[0]->related('articles')->[2]->related('comments')->[0]
 # same test, but different format of commands
 $authors = Author->find(with => [qw/articles.comments.podcast/]);
 is( @$authors, 1);
+is ( @{$authors->[0]->related('articles')}, 3 );
 is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
 is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
         ->column('content'), 'comment content' );
+is( $authors->[0]->related('articles')->[0]->related('comments')->[1]
+        ->column('content'), 'comment content second' );
 is( $authors->[0]
         ->related('articles')->[0]
         ->related('comments')->[0]
@@ -120,9 +139,12 @@ is( $authors->[0]->related('articles')->[2]->related('comments')->[0]
 $authors = Author
     ->find(with => [qw/articles articles.comments articles.comments.podcast articles.category/]);
 is( @$authors, 1);
+is ( @{$authors->[0]->related('articles')}, 3 );
 is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
 is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
         ->column('content'), 'comment content' );
+is( $authors->[0]->related('articles')->[0]->related('comments')->[1]
+        ->column('content'), 'comment content second' );
 is( $authors->[0]
         ->related('articles')->[0]
         ->related('comments')->[0]
@@ -143,9 +165,12 @@ is( $authors->[0]->related('articles')->[2]->related('category')
 $authors = Author
     ->find(with => [qw/articles.comments.podcast articles.category/]);
 is( @$authors, 1);
+is ( @{$authors->[0]->related('articles')}, 3 );
 is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
 is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
         ->column('content'), 'comment content' );
+is( $authors->[0]->related('articles')->[0]->related('comments')->[1]
+        ->column('content'), 'comment content second' );
 is( $authors->[0]
         ->related('articles')->[0]
         ->related('comments')->[0]
