@@ -190,16 +190,18 @@ my @new_rel_info;
         my $relationships = $class->schema->relationships;
         my $last          = 0;
         my $name;
+        my $last_rel;
         while (1) {
             if ($rel_info->{name} =~ s/^(\w+)\.//) {
                 $name = $1;
 
-                $rel_info->{subwith} ||= [];
-                push @{$rel_info->{subwith}}, $name;
+                $rel_info->{subwith} = $name;
+#warn "+++++++++++++++++++++ $name" if $ENV{OBJECTDB_DEBUG};
             }
             else {
                 $name = $rel_info->{name};
                 $last = 1;
+#warn "+++++++++++++++++++++LAST $name" if $ENV{OBJECTDB_DEBUG};
             }
 
             unless ($relationship = $relationships->{$name}) {
@@ -212,7 +214,8 @@ my @new_rel_info;
 
             my $success = $self->source($relationship->to_source);
 
-            if ($last && $success) {
+            if ( $last && $success ) {
+#warn "+++++++++++++++++++++LAST SUCCESS $name ".$rel_info->{subwith}->[-1] if $ENV{OBJECTDB_DEBUG};
                 my @columns;
                 if ($rel_info->{columns}) {
                     $rel_info->{columns} = [$rel_info->{columns}]
@@ -230,14 +233,16 @@ my @new_rel_info;
 
                 last;
             }
-            elsif ( $last ){
+            elsif ( $last && !$success ){
+#warn "+++++++++++++++++++++LAST FAIL $name ".$rel_info->{subwith}->[-1] if $ENV{OBJECTDB_DEBUG};
                 last;
             }
-            else {
-
+            elsif ( $success ) {
+#warn "+++++++++++++++++++++MIDDLE SUCCESS $name ".$rel_info->{subwith}->[-1] if $ENV{OBJECTDB_DEBUG};
+                my $new_sub_with = $last_rel if $last_rel;
                 my $new_rel_info = {
                     name => $name,
-                    subwith => [],
+                    subwith => $new_sub_with,
                     columns => [$relationship->class->schema->primary_keys]
                 };
 
@@ -245,8 +250,9 @@ my @new_rel_info;
 
                 $self->columns($relationship->class->schema->primary_keys) if $success;
 
-                $relationships = $relationship->class->schema->relationships;
             }
+            $relationships = $relationship->class->schema->relationships;
+            $last_rel = $name;
 
         }
     }
