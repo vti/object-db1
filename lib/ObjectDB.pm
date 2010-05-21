@@ -996,15 +996,13 @@ sub _map_rows_to_objects {
                     $parent_object = $parent_object_list->_related->{ $rel_info->{subwith} };
                     last if $parent_object;
                 }
-                die "load ".$rel_info->{subwith}.' '.$rel_info->{name}." first" unless $parent_object;
+                die "load ".$rel_info->{subwith}." first" unless $parent_object;
             }
 
             $parent_object = $parent_object->[-1] if ref $parent_object eq 'ARRAY';
 
             my $relationship =
               $parent_object->schema->relationships->{$rel_info->{name}};
-#warn "####################".$parent_object->schema->table if $ENV{OBJECTDB_DEBUG};
-#warn "####################".$rel_info->{name} if $ENV{OBJECTDB_DEBUG};
 
             my @values = map { $_ => shift @$row } @{$rel_info->{columns}};
 
@@ -1013,8 +1011,13 @@ sub _map_rows_to_objects {
 
             my $rel_object = $relationship->class->new(@values);
 
+
+
+########################################################################
             ### TO DO: check if this makes sense
             unshift ( @parent_objects, $rel_object );
+########################################################################
+
 
             $rel_object->is_in_db(1);
             $rel_object->is_modified(0);

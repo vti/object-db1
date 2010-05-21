@@ -8,7 +8,7 @@ use Test::More;
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite is required for running this test" if $@;
 
-plan tests => 30;
+plan tests => 35;
 
 use lib 't/lib';
 
@@ -20,8 +20,11 @@ use Category;
 # Create an author with article and comments on article
 my $author = Author->new(
     name     => 'foo',
-    articles => {title => 'article title', comments => [{content => 'comment content'}]}
+    articles => {title => 'article title', comments => [{content => 'comment content'}], category_id=>1 }
 )->create;
+
+
+# First simple test
 my $authors = Author->find(with => [qw/articles articles.comments/]);
 is( @$authors, 1);
 is( $authors->[0]->related('articles')->[0]->column('title'), 'article title');
@@ -31,7 +34,6 @@ is( $authors->[0]
 
 
 # Save data for validation purposes
-# TO DO: check if data is true
 my $article_id;
 my $comment_master_id;
 my $comment_id;
@@ -97,19 +99,22 @@ is( $authors->[0]
         ->related('podcast')->column('title'), 'pod title' );
 
 
-#$ENV{OBJECTDB_DEBUG} = 1;
+# Find articles, than comments, than category
 Category->new( id=>1, title=>"stuff")->create;
 $authors = Author->find(with => [qw/articles articles.comments articles.category/]);
 is(@$authors, 1);
 is($authors->[0]->related('articles')->[0]->column('title'), 'article title');
 is($authors->[0]->related('articles')->[0]->related('comments')->[0]->column('content'), 'comment content');
-
-#$ENV{OBJECTDB_DEBUG} = 0;
-
+is($authors->[0]->related('articles')->[0]->related('category')->column('title'), 'stuff');
 
 
-
-
+# Find comments, than category
+Category->new( id=>1, title=>"stuff")->create;
+$authors = Author->find(with => [qw/articles.comments articles.category/]);
+is(@$authors, 1);
+is($authors->[0]->related('articles')->[0]->column('id'), $article_id);
+is($authors->[0]->related('articles')->[0]->related('comments')->[0]->column('content'), 'comment content');
+is($authors->[0]->related('articles')->[0]->related('category')->column('title'), 'stuff');
 
 
 
