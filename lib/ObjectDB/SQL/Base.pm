@@ -178,7 +178,7 @@ sub _resolve_with {
     my ($with) = @_;
     my $class = $self->class;
 
-my @new_rel_info;
+    my @new_rel_info;
 
     foreach my $rel_info (@$with) {
         unless (ref $rel_info eq 'HASH') {

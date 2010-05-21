@@ -305,7 +305,7 @@ sub create {
 
     my @values = map { $self->column($_) } $self->columns;
 
-    warn "$sql" if $ENV{OBJECTDB_DEBUG};
+    #warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
     if ($dbh->errstr){warn $sql; }
@@ -315,6 +315,7 @@ sub create {
     }
 
     my $rv  = $sth->execute(@values);
+    if ($dbh->errstr){warn $sql." @values"; }
     unless ($rv && $rv eq '1') {
         $self->error($DBI::errstr);
         return;
@@ -989,41 +990,49 @@ sub _map_rows_to_objects {
         next unless $with;
 
         my $parent_object = $object;
-        my @parent_objects = ($object);
+        my @recent_parents = ($object);
         foreach my $rel_info (@$with) {
+#warn "################NAME: ".$rel_info->{name} if $ENV{OBJECTDB_DEBUG};
             if ( $rel_info->{subwith} ) {
-                foreach my $parent_object_list (@parent_objects) {
-                    $parent_object = $parent_object_list->_related->{ $rel_info->{subwith} };
+                foreach my $recent_parent (@recent_parents) {
+                    $parent_object = $recent_parent->_related->{ $rel_info->{subwith} };
                     last if $parent_object;
                 }
-                die "load ".$rel_info->{subwith}." first" unless $parent_object;
+#warn "PARENT NOT FOUND " unless $parent_object;
+                unless ( $parent_object ){
+                    map { $_ => shift @$row } @{$rel_info->{columns}};
+                    next;
+                }
             }
 
+            # parent object can be array ref if !$rel_info->{subwith}
             $parent_object = $parent_object->[-1] if ref $parent_object eq 'ARRAY';
-
-            my $relationship =
-              $parent_object->schema->relationships->{$rel_info->{name}};
 
             my @values = map { $_ => shift @$row } @{$rel_info->{columns}};
 
             my %values = @values;
             next unless grep {defined} values %values;
 
+            my $relationship =
+              $parent_object->schema->relationships->{$rel_info->{name}};
+
             my $rel_object = $relationship->class->new(@values);
-
-
-
-########################################################################
-            ### TO DO: check if this makes sense
-            unshift ( @parent_objects, $rel_object );
-########################################################################
-
 
             $rel_object->is_in_db(1);
             $rel_object->is_modified(0);
 
             my $sign = $rel_info->{name} . $rel_object->sign;
-            next if $map->{$sign};
+
+# TO DO: Test
+            if ( $map->{$sign} ){
+            unshift ( @recent_parents, $map->{$sign} );
+#warn "++++++++++++++NEXT: ".ref($rel_object) if $ENV{OBJECTDB_DEBUG};
+                next;
+            }
+
+            unshift ( @recent_parents, $rel_object );
+
+#warn "++++++++++++++".ref($rel_object) if $ENV{OBJECTDB_DEBUG};
 
             $map->{$sign} = $rel_object;
 
