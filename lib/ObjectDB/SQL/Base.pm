@@ -237,12 +237,12 @@ sub _resolve_with {
                 my $new_rel_info = {
                     name => $name,
                     subwith => $new_sub_with,
-                    columns => [$relationship->class->schema->primary_keys]
+                    columns => [$relationship->class->schema->columns]
                 };
 
                 unshift @new_rel_info, $new_rel_info if $success;
 
-                $self->columns($relationship->class->schema->primary_keys) if $success;
+                $self->columns($relationship->class->schema->columns) if $success;
 
             }
             $relationships = $relationship->class->schema->relationships;

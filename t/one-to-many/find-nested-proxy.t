@@ -8,11 +8,12 @@ use Test::More;
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite is required for running this test" if $@;
 
-plan tests => 47;
+plan tests => 60;
 
 use lib 't/lib';
 
 use Author;
+use Article;
 use Podcast;
 use Category;
 use Comment;
@@ -35,9 +36,19 @@ my $author = Author->new(
 
 # First simple test
 my $authors = Author->find(with => [qw/articles articles.comments/]);
-is( @$authors, 1);
-is( $authors->[0]->related('articles')->[0]->column('title'), 'article title');
-is( $authors->[0]->related('articles')->[1]->column('title'), 'article title2');
+is( @$authors, 1 );
+is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
+is( $authors->[0]->related('articles')->[1]->column('title'), 'article title2' );
+is( $authors->[0]
+        ->related('articles')->[0]
+        ->related('comments')->[0]->column('content'), 'comment content' );
+
+
+# same tests with autoload of articles
+$authors = Author->find(with => [qw/articles.comments/]);
+is( @$authors, 1 );
+is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
+is( $authors->[0]->related('articles')->[1]->column('title'), 'article title2' );
 is( $authors->[0]
         ->related('articles')->[0]
         ->related('comments')->[0]->column('content'), 'comment content' );
@@ -59,23 +70,14 @@ ok ( $comment_id = $authors->[0]
                             ->column('id') );
 
 
-# Autoload articles if only articles.comments is requested
-$authors = Author->find(with => [qw/articles.comments/]);
-is( @$authors, 1 );
-ok( !defined $authors->[0]->related('articles')->[0]->column('title') );
-is( $authors->[0]->related('articles')->[0]->column('id'), $article_id );
-is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
-        ->column('content'), 'comment content' );
-
-
-# Autoload articles if only articles.comments is requested, don't load
-# articles a second time
+# make sure that articles do not load a second time
 $authors = Author->find(with => [qw/articles.comments articles/]);
 is( @$authors, 1 );
-ok( !defined $authors->[0]->related('articles')->[0]->column('title') );
-is( $authors->[0]->related('articles')->[0]->column('id'), $article_id );
-is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
-        ->column('content'), 'comment content' );
+is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
+is( $authors->[0]->related('articles')->[1]->column('title'), 'article title2' );
+is( $authors->[0]
+        ->related('articles')->[0]
+        ->related('comments')->[0]->column('content'), 'comment content' );
 
 
 # Add another level to up the ante
@@ -96,6 +98,22 @@ is( $authors->[0]
 is( $authors->[0]->related('articles')->[2]->column('title'), 'article title3' );
 is( $authors->[0]->related('articles')->[2]->related('comments')->[0]
         ->column('content'), 'comment content3' );
+
+
+# same test, but different format of commands
+$authors = Author->find(with => [qw/articles.comments.podcast/]);
+is( @$authors, 1);
+is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
+is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
+        ->column('content'), 'comment content' );
+is( $authors->[0]
+        ->related('articles')->[0]
+        ->related('comments')->[0]
+        ->related('podcast')->column('title'), 'pod title' );
+is( $authors->[0]->related('articles')->[2]->column('title'), 'article title3' );
+is( $authors->[0]->related('articles')->[2]->related('comments')->[0]
+        ->column('content'), 'comment content3' );
+
 
 
 # Find all authors with all articles with all comments with podcast, also find category
@@ -120,20 +138,27 @@ is( $authors->[0]->related('articles')->[2]->related('category')
         ->column('title'), 'stuff3' );
 
 
-# Find all authors with comment related podcasts (and primary key data of articles an comments)
-$authors = Author->find(with => [qw/articles.comments.podcast/]);
+
+# same tests with autoload of articles and comments
+$authors = Author
+    ->find(with => [qw/articles.comments.podcast articles.category/]);
 is( @$authors, 1);
-ok( !defined $authors->[0]->related('articles')->[0]->column('title') );
-is( $authors->[0]->related('articles')->[0]->column('id'), $article_id );
-ok( !defined $authors->[0]->related('articles')->[0]->related('comments')->[0]
-        ->column('content') );
+is( $authors->[0]->related('articles')->[0]->column('title'), 'article title' );
 is( $authors->[0]->related('articles')->[0]->related('comments')->[0]
-        ->column('id'), $comment_id );
+        ->column('content'), 'comment content' );
 is( $authors->[0]
         ->related('articles')->[0]
         ->related('comments')->[0]
         ->related('podcast')->column('title'), 'pod title' );
-### TO DO: check third article data (see previous tests)
+is( $authors->[0]->related('articles')->[0]->related('category')
+        ->column('title'), 'stuff1' );
+is( $authors->[0]->related('articles')->[1]->related('category')
+        ->column('title'), 'stuff2' );
+is( $authors->[0]->related('articles')->[2]->column('title'), 'article title3' );
+is( $authors->[0]->related('articles')->[2]->related('comments')->[0]
+        ->column('content'), 'comment content3' );
+is( $authors->[0]->related('articles')->[2]->related('category')
+        ->column('title'), 'stuff3' );
 
 
 # Find articles, than comments, than category
@@ -142,14 +167,18 @@ is(@$authors, 1);
 is($authors->[0]->related('articles')->[0]->column('title'), 'article title');
 is($authors->[0]->related('articles')->[0]->related('comments')->[0]->column('content'), 'comment content');
 is($authors->[0]->related('articles')->[0]->related('category')->column('title'), 'stuff1');
+is($authors->[0]->related('articles')->[1]->related('category')->column('title'), 'stuff2');
+is($authors->[0]->related('articles')->[2]->related('category')->column('title'), 'stuff3');
 
 
-# Find comments, than category
+# same tests with autoload of articles
 $authors = Author->find(with => [qw/articles.comments articles.category/]);
 is(@$authors, 1);
-is($authors->[0]->related('articles')->[0]->column('id'), $article_id);
+is($authors->[0]->related('articles')->[0]->column('title'), 'article title');
 is($authors->[0]->related('articles')->[0]->related('comments')->[0]->column('content'), 'comment content');
 is($authors->[0]->related('articles')->[0]->related('category')->column('title'), 'stuff1');
+is($authors->[0]->related('articles')->[1]->related('category')->column('title'), 'stuff2');
+is($authors->[0]->related('articles')->[2]->related('category')->column('title'), 'stuff3');
 
 
 # Find articles and comments with where constraint
