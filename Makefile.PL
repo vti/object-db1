@@ -3,6 +3,8 @@ use warnings;
 
 use ExtUtils::MakeMaker;
 
+my $mm = $ExtUtils::MakeMaker::VERSION;
+
 WriteMakefile(
     NAME         => 'ObjectDB',
     VERSION_FROM => 'lib/ObjectDB.pm',
