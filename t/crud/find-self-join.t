@@ -17,7 +17,7 @@ use Family;
 my $father = Family->new(name => 'father')->create;
 ok($father->create_related(ansestors => {name => 'child'}));
 
-my $people = Family->find(with => ['parent', 'ansestors']);
+my $people = Family->new->find(with => ['parent', 'ansestors']);
 is(@$people, 2);
 
 my ($_father, $child) = @$people;

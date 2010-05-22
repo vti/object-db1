@@ -27,9 +27,9 @@ push @categories,
     }
   )->create;
 
-is_deeply(Comment->find(where => ['article.category.title' => 'foo']), []);
+is_deeply(Comment->new->find(where => ['article.category.title' => 'foo']), []);
 
-my $comments = Comment->find(
+my $comments = Comment->new->find(
     where => ['article.category.title' => 'bar'],
     with => ['article', 'article.category']
 );

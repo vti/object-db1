@@ -24,10 +24,10 @@ push @articles,
   Article->new(title => 'foo', category_id => $categories[0]->column('id'))
   ->create;
 
-is_deeply(Article->find(where => ['category.title' => 'foo']), []);
+is_deeply(Article->new->find(where => ['category.title' => 'foo']), []);
 
 my $articles =
-  Article->find(where => ['category.title' => 'bar'], with => 'category');
+  Article->new->find(where => ['category.title' => 'bar'], with => 'category');
 
 is(@$articles,                                           1);
 is($articles->[0]->related('category')->column('title'), 'bar');

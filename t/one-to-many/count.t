@@ -21,8 +21,8 @@ my $author = Author->new(
 
 ok($author);
 
-is(Author->count(where => ['articles.title' => 'bar']), 0);
+is(Author->new->count(where => ['articles.title' => 'bar']), 0);
 
-is(Author->count(where => ['articles.title' => 'foo']), 1);
+is(Author->new->count(where => ['articles.title' => 'foo']), 1);
 
 $author->delete;

@@ -29,6 +29,10 @@ sub new {
     return $self;
 }
 
+sub init_db {
+    Carp::croak('->init_db must be overwritten');
+}
+
 sub error { @_ > 1 ? $_[0]->{error} = $_[1] : $_[0]->{error} }
 
 sub is_in_db { @_ > 1 ? $_[0]->{is_in_db} = $_[1] : $_[0]->{is_in_db} }
@@ -182,58 +186,56 @@ sub _create_related {
 
     my $relationships = $self->schema->relationships;
 
-    if ($relationships) {
-        foreach my $rel_name (keys %{$relationships}) {
-            my $rel_type = $relationships->{$rel_name}->{type};
+    # Nothing to do
+    return unless $relationships;
 
-            if (my $rel_values = $self->_related->{$rel_name}) {
-                if ($rel_type eq 'many to many') {
-                    my $objects =
-                      $self->set_related($rel_name => $rel_values);
-                    return unless $objects;
+    foreach my $rel_name (keys %{$relationships}) {
+        my $rel_type = $relationships->{$rel_name}->{type};
 
-                    $self->related($rel_name => $objects);
+        if (my $rel_values = $self->_related->{$rel_name}) {
+            if ($rel_type eq 'many to many') {
+                my $objects =
+                  $self->set_related($rel_name => $rel_values);
+                return unless $objects;
 
-                    return $self;
+                $self->related($rel_name => $objects);
+
+                return $self;
+            }
+            else {
+                my $data;
+
+                if (ref $rel_values eq 'ARRAY') {
+                    $data = $rel_values;
+                }
+                elsif (ref $rel_values eq 'HASH') {
+                    $data = [$rel_values];
+                }
+                elsif (ref $rel_values) {
+                    $data = [$rel_values->to_hash];
                 }
                 else {
-                    my $data;
+                    die
+                      "wrong params when setting '$rel_name' relationship: $rel_values";
+                }
 
-                    if (ref $rel_values eq 'ARRAY') {
-                        $data = $rel_values;
-                    }
-                    elsif (ref $rel_values eq 'HASH') {
-                        $data = [$rel_values];
-                    }
-                    elsif (ref $rel_values) {
-                        $data = [$rel_values->to_hash];
-                    }
-                    else {
-                        die
-                          "wrong params when setting '$rel_name' relationship: $rel_values";
+                if ($rel_type eq 'one to many') {
+                    my $objects = [];
+
+                    foreach my $d (@$data) {
+                        push @$objects,
+                          $self->create_related($rel_name => $d);
                     }
 
-                    if ($rel_type eq 'one to many') {
-                        my $objects = [];
-
-                        foreach my $d (@$data) {
-                            push @$objects,
-                              $self->create_related($rel_name => $d);
-                        }
-
-                        $self->related($rel_name => $objects);
-                    }
-                    else {
-                        my $rel_object =
-                          $self->create_related($rel_name => $data->[0]);
-                        $self->related($rel_name => $rel_object);
-                    }
+                    $self->related($rel_name => $objects);
+                }
+                else {
+                    my $rel_object =
+                      $self->create_related($rel_name => $data->[0]);
+                    $self->related($rel_name => $rel_object);
                 }
             }
         }
-    }
-    else {
-        return;
     }
 }
 
@@ -351,7 +353,7 @@ sub load {
               || $self->schema->is_unique_key($name);
     }
 
-    Carp::croak "no primary or unique keys specified" unless @columns;
+    Carp::croak "->load: no primary or unique keys specified" unless @columns;
 
     my $sql = ObjectDB::SQL->build('select', class => $class);
 
@@ -405,19 +407,19 @@ sub update {
     my @columns;
     my @values;
 
-    if (ref $self && !%args) {
+    if (!%args) {
+
+        Carp::croak "->update: no primary or unique keys specified"
+          unless grep {
+                 $self->schema->is_primary_key($_)
+              or $self->schema->is_unique_key($_)
+          } $self->columns;
 
         # If not modified update only related objects
         unless ($self->is_modified) {
             warn 'Not modified' if DEBUG;
             return $self->_update_related;
         }
-
-        Carp::croak "no primary or unique keys specified"
-          unless grep {
-                 $self->schema->is_primary_key($_)
-              or $self->schema->is_unique_key($_)
-          } $self->columns;
 
         $args{where} =
           [map { $_ => $self->column($_) } $self->schema->primary_keys];
@@ -460,28 +462,31 @@ sub update {
 
     $self->_update_related if ref $self;
 
-    return ref $self ? $self : $rv;
+    return $self;
 }
 
 sub delete {
     my $self = shift;
     my %args = @_;
 
+    die '->delete must be called on object instance' unless ref($self);
+
     my $dbh = $self->init_db;
 
-    if (ref $self && !%args) {
-        my @columns = $self->columns;
+    my @columns = $self->columns;
 
+    if (!%args && @columns) {
         my @keys = grep { $self->schema->is_primary_key($_) } @columns;
         unless (@keys) {
             @keys = grep { $self->schema->is_unique_key($_) } @columns;
         }
 
-        Carp::croak "no primary or unique keys specified" unless @keys;
+        Carp::croak "->delete: no primary or unique keys specified" unless @keys;
 
         $args{where} = [map { $_ => $self->column($_) } @keys];
 
         my $sql = ObjectDB::SQL->build('delete');
+        $sql->class(ref($self));
         $sql->table($self->schema->table);
         $sql->where([@{$args{where}}]) if $args{where};
         $sql->to_string;
@@ -522,22 +527,22 @@ sub delete {
 }
 
 sub find {
-    my $class = shift;
-    $class = ref($class) if ref($class);
+    my $self = shift;
     my %args = @_;
 
-    my $dbh = $class->init_db;
+    die '->find must be called on object instance' unless ref($self);
+
+    my $dbh = $self->init_db;
 
     my $iterator = $args{iterator};
     my $single   = $args{single};
     $iterator = undef if $single;
 
-    my $sql = ObjectDB::SQL->build('select', class => $class);
-
+    my $sql = ObjectDB::SQL->build('select', class => ref($self));
 
     if (my $cols = $args{columns}) {
         my @columns = ref $cols ? @$cols : ($cols);
-        unshift @columns, $class->schema->primary_keys;
+        unshift @columns, $self->schema->primary_keys;
         $sql->columns(@columns);
     }
 
@@ -576,22 +581,19 @@ sub find {
 
     my $sth = $dbh->prepare("$sql");
     unless ($sth) {
-
-        #$self->error($DBI::errstr);
+        $self->error($DBI::errstr);
         return;
     }
 
     my $rv = $sth->execute(@{$sql->bind});
     unless ($rv) {
-        warn $DBI::errstr;
-
-        #$self->error($DBI::errstr);
+        $self->error($DBI::errstr);
         return;
     }
 
     if ($iterator) {
         return ObjectDB::Iterator->new(
-            class   => $class,
+            class   => ref($self),
             sth     => $sth,
             columns => [$sql->columns],
             with    => $with
@@ -601,7 +603,7 @@ sub find {
         my $rows = $sth->fetchall_arrayref;
         return $single ? undef : [] unless $rows && @$rows;
 
-        my $objects = $class->_map_rows_to_objects(
+        my $objects = $self->_map_rows_to_objects(
             rows    => $rows,
             columns => [$sql->columns],
             with    => $with
@@ -612,17 +614,19 @@ sub find {
 }
 
 sub count {
-    my $class = shift;
+    my $self = shift;
     my %args  = @_;
 
-    my $dbh = $class->init_db;
+    die '->count must be called on object instance' unless ref($self);
 
-    my $table = $class->schema->table;
-    my @pk    = map {"`$table`.`$_`"} $class->schema->primary_keys;
+    my $dbh = $self->init_db;
+
+    my $table = $self->schema->table;
+    my @pk    = map {"`$table`.`$_`"} $self->schema->primary_keys;
     my $pk    = join(',', @pk);
 
-    my $sql = ObjectDB::SQL->build('select', class => $class);
-    $sql->columns(\"COUNT(DISTINCT $pk)");    #"
+    my $sql = ObjectDB::SQL->build('select', class => ref($self));
+    $sql->columns(\"COUNT(DISTINCT $pk)");
     $sql->to_string;
 
     if (my $sources = $args{source}) {
@@ -638,7 +642,10 @@ sub count {
     warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
-    return unless $hash_ref && ref $hash_ref eq 'HASH';
+    unless ($hash_ref && ref $hash_ref eq 'HASH') {
+        $self->error($dbh->errstr);
+        return;
+    }
 
     my @values = values %$hash_ref;
     return shift @values;
@@ -676,6 +683,8 @@ sub _load_relationship {
 sub create_related {
     my $self = shift;
     my ($name, $args) = @_;
+
+    die '->create_related must be called on object instance' unless ref($self);
 
     $args = $args->to_hash unless ref $args eq 'HASH';
 
@@ -816,7 +825,8 @@ sub find_related {
         $args->{with} = $relationship->with;
     }
 
-    $relationship->class->find(%$args);
+    my $rel = $relationship->class->new;
+    return $rel->find(%$args);
 }
 
 sub count_related {
@@ -856,7 +866,8 @@ sub count_related {
         push @{$args->{where}}, @{$relationship->where};
     }
 
-    return $relationship->class->count(%$args);
+    my $rel = $relationship->class->new;
+    return $rel->count(%$args);
 }
 
 sub update_related {
@@ -887,6 +898,8 @@ sub delete_related {
     my $self = shift;
     my ($name, $args) = @_;
 
+    die '->delete_related must be called on object instance' unless ref($self);
+
     my $relationship = $self->_load_relationship($name);
 
     $args ||= {};
@@ -915,7 +928,8 @@ sub delete_related {
         push @{$args->{where}}, @{$relationship->where};
     }
 
-    return $relationship->$class_param->delete(%$args);
+    my $rel = $relationship->$class_param->new;
+    return $rel->delete(%$args);
 }
 
 sub set_related {

@@ -18,14 +18,14 @@ my $author;
 
 Author->begin_work;
 Author->new(name => 'foo') ->create;
-is(Author->count, 1);
+is(Author->new->count, 1);
 Author->rollback;
-is(Author->count, 0);
+is(Author->new->count, 0);
 
 Author->begin_work;
 $author = Author->new(name => 'foo')->create;
-is(Author->count, 1);
+is(Author->new->count, 1);
 Author->commit;
-is(Author->count, 1);
+is(Author->new->count, 1);
 
 $author->delete;

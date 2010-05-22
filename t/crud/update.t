@@ -38,10 +38,10 @@ $author = Author->new(id => $author->column('id'))->load;
 is($author->column('name'),     'fuu');
 is($author->column('password'), 'boo');
 
-eval {Author->update()};
-like($@, qr/set is required/);
+eval {Author->new->update};
+like($@, qr/no primary or unique keys specified/);
 
-Author->update(set => {name => 'haha'});
+Author->new->update(set => {name => 'haha'});
 $author = Author->new(id => $author->column('id'))->load;
 is($author->column('name'),     'haha');
 is($author->column('password'), 'boo');

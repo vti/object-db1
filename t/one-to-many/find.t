@@ -21,12 +21,12 @@ my $author = Author->new(
 
 ok($author);
 
-my $authors = Author->find(where => ['articles.title' => 'bar']);
+my $authors = Author->new->find(where => ['articles.title' => 'bar']);
 
 is_deeply($authors, []);
 
 $authors =
-  Author->find(where => ['articles.title' => 'foo'], with => 'articles');
+  Author->new->find(where => ['articles.title' => 'foo'], with => 'articles');
 
 is(@$authors, 1);
 

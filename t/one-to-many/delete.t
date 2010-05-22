@@ -38,9 +38,9 @@ $author->delete;
 
 ok(not defined Author->new(id => $author_id)->load);
 
-is_deeply(Article->find(where => [author_id => $author_id]), []);
+is_deeply(Article->new->find(where => [author_id => $author_id]), []);
 
-ok( not defined Comment->find(
+ok( not defined Comment->new->find(
         where  => [type => 'article', master_id => $article_id],
         single => 1
     )

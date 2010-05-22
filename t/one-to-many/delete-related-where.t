@@ -23,7 +23,7 @@ $id = $author->column('id');
 
 $author->delete_related('comments');
 
-ok( not defined Comment->find(
+ok( not defined Comment->new->find(
         where  => [type => 'article', master_id => $id],
         single => 1
     )

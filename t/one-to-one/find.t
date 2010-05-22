@@ -17,12 +17,12 @@ use Author;
 my $author = Author->new(name => 'foo', author_admin => {beard => 0})->create;
 ok($author);
 
-my $authors = Author->find(where => ['author_admin.beard' => 1]);
+my $authors = Author->new->find(where => ['author_admin.beard' => 1]);
 
 is_deeply($authors, []);
 
 $authors =
-  Author->find(where => ['author_admin.beard' => 0], with => 'author_admin');
+  Author->new->find(where => ['author_admin.beard' => 0], with => 'author_admin');
 
 is(@$authors, 1);
 

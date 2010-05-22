@@ -24,4 +24,4 @@ my $article = Article->new(id => $articles[0]->column('id'))->load;
 is($article->count_related('tags'), 1);
 
 $articles[0]->delete;
-Tag->delete(where => [name => [qw/foo/]]);
+Tag->new->delete(where => [name => [qw/foo/]]);

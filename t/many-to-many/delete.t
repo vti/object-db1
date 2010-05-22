@@ -26,7 +26,7 @@ $article->delete;
 
 ok(not defined Article->new(id => $id)->load);
 
-ok( not defined ArticleTagMap->find(where => [article_id => $id], single => 1)
+ok( not defined ArticleTagMap->new->find(where => [article_id => $id], single => 1)
 );
 
 my $tag = Tag->new(name => 'foo')->load;

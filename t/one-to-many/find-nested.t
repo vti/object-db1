@@ -27,11 +27,11 @@ my $author = Author->new(
 
 ok($author);
 
-my $authors = Author->find(where => ['articles.category.title' => 'foo']);
+my $authors = Author->new->find(where => ['articles.category.title' => 'foo']);
 
 is_deeply($authors, []);
 
-$authors = Author->find(
+$authors = Author->new->find(
     where => ['articles.category.title' => 'general'],
     with => ['articles', 'articles.category']
 );

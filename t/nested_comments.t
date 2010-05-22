@@ -78,7 +78,7 @@ is($c9->column('lft'),   16);
 is($c9->column('rgt'),   17);
 is($c9->column('level'), 2);
 
-my $comments = NestedComment->find(
+my $comments = NestedComment->new->find(
     where => [
         master_type => 'article',
         master_id   => $master->column('id')

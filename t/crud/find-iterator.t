@@ -19,7 +19,7 @@ my @authors;
 push @authors, Author->new(name => 'root', password => 'boo')->create;
 push @authors, Author->new(name => 'boot', password => 'booo')->create;
 
-my $authors = Author->find(order_by => 'name', iterator => 1);
+my $authors = Author->new->find(order_by => 'name', iterator => 1);
 isa_ok($authors, 'ObjectDB::Iterator');
 
 my $author = $authors->next;

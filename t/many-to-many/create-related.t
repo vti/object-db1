@@ -25,4 +25,4 @@ ok($tag);
 is($tag->column('name'), 'foo');
 
 $articles[0]->delete;
-Tag->delete(where => [name => [qw/foo/]]);
+Tag->new->delete(where => [name => [qw/foo/]]);

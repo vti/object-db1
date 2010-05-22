@@ -31,7 +31,7 @@ my $comment =
 
 ok($comment);
 
-my $articles = Article->find(where => ['tags.name' => 'unix']);
+my $articles = Article->new->find(where => ['tags.name' => 'unix']);
 is(@$articles, 1);
 
 ok($author->delete);

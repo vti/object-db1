@@ -21,9 +21,9 @@ push @articles,
   Article->new(name => 'foo', tags => [{name => 'bar'}, {name => 'baz'}])
   ->create;
 
-is_deeply(Article->find(where => ['tags.name' => 'foo']), []);
+is_deeply(Article->new->find(where => ['tags.name' => 'foo']), []);
 
-my $articles = Article->find(with => 'tags');
+my $articles = Article->new->find(with => 'tags');
 
 is(@$articles, 1);
 
@@ -33,4 +33,4 @@ is($tags->[0]->column('name'), 'bar');
 is($tags->[1]->column('name'), 'baz');
 
 $articles[0]->delete;
-Tag->delete(where => [name => [qw/bar baz/]]);
+Tag->new->delete(where => [name => [qw/bar baz/]]);

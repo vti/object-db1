@@ -30,7 +30,7 @@ my @data = (
 );
 
 foreach my $data (@data) {
-    my $articles = Article->find(
+    my $articles = Article->new->find(
         page      => $data->{page},
         page_size => $data->{page_size}
     );
@@ -38,7 +38,7 @@ foreach my $data (@data) {
     is(@$articles, $data->{total});
 }
 
-my $article = Article->find(page => 2, page_size => 5, single => 1);
+my $article = Article->new->find(page => 2, page_size => 5, single => 1);
 is($article->column('title'), 1);
 
 $_->delete for @articles;

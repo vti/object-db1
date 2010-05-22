@@ -24,7 +24,7 @@ $id = $article->column('id');
 
 $article->delete_related('tags');
 
-ok( not defined ArticleTagMap->find(where => [article_id => $id], single => 1)
+ok( not defined ArticleTagMap->new->find(where => [article_id => $id], single => 1)
 );
 
 $article = Article->new(id => $id)->load;

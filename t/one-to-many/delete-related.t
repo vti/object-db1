@@ -22,7 +22,7 @@ $id = $author->column('id');
 
 $author->delete_related('articles');
 
-ok(not defined Article->find(where => [author_id => $id], single => 1));
+ok(not defined Article->new->find(where => [author_id => $id], single => 1));
 
 $author = Author->new(id => $id)->load;
 ok($author);

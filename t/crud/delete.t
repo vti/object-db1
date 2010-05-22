@@ -23,7 +23,7 @@ my $foo = Foo->new(id => 1);
 ok(not defined $foo->delete);
 like($foo->error, qr/(no such table|doesn't exist)/);
 
-eval { Author->new->delete };
+eval { Author->new(password => 'foo')->delete };
 like($@, qr/no primary or unique keys specified/);
 
 $author = Author->new(id => 345345);
@@ -35,7 +35,7 @@ ok($author->delete);
 
 $author = Author->new(name => 'root');
 $author->create;
-ok(Author->delete(where => [name => 'root']));
+ok(Author->new->delete(where => [name => 'root']));
 
-ok(not defined Author->delete(where => [id => 123456]));
-ok(not defined Author->delete(where => [name => 'abc']));
+ok(not defined Author->new->delete(where => [id => 123456]));
+ok(not defined Author->new->delete(where => [name => 'abc']));
