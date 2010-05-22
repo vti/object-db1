@@ -11,7 +11,7 @@ require Carp;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
-our $VERSION = '0.990104';
+our $VERSION = '0.990201';
 
 sub new {
     my $class = shift;
@@ -1303,6 +1303,8 @@ Viacheslav Tykhanovskyi, C<vti@cpan.org>.
 In alphabetical order:
 
 Andre Vieth
+
+Mirko Westermeier
 
 =head1 COPYRIGHT
 
