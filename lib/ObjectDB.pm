@@ -29,78 +29,46 @@ sub new {
     return $self;
 }
 
-sub init_db {
+sub begin_work {
     my $self = shift;
 
-    return $self->{init_db} unless @_;
-
-    $self->{init_db} = $_[0];
+    return $self->init_db->begin_work;
 }
 
-sub error { @_ > 1 ? $_[0]->{error} = $_[1] : $_[0]->{error} }
-
-sub is_in_db { @_ > 1 ? $_[0]->{is_in_db} = $_[1] : $_[0]->{is_in_db} }
-
-sub is_modified {
-    @_ > 1 ? $_[0]->{is_modified} = $_[1] : $_[0]->{is_modified};
-}
-
-sub _related { @_ > 1 ? $_[0]->{_related} = $_[1] : $_[0]->{_related} }
-sub _columns { @_ > 1 ? $_[0]->{_columns} = $_[1] : $_[0]->{_columns} }
-
-sub init {
+sub clone {
     my $self = shift;
 
-    my %values = ref $_[0] ? %{$_[0]} : @_;
-    foreach my $key ($self->schema->columns) {
-        if (exists $values{$key}) {
-            $self->column($key => $values{$key});
-        }
-        elsif (
-            !defined $self->column($key)
-            && defined(
-                my $default = $self->schema->columns_map->{$key}->{default}
-            )
-          )
-        {
-            $self->_columns->{$key} = $default;
-        }
+    my %data;
+    foreach my $column ($self->schema->columns) {
+        next
+          if $self->schema->is_primary_key($column)
+              || $self->schema->is_unique_key($column);
+        $data{$column} = $self->column($column);
     }
 
-    if ($self->schema->relationships) {
-        foreach my $rel (keys %{$self->schema->relationships}) {
-            if (exists $values{$rel}) {
-                my $rel_values = delete $values{$rel};
+    return (ref $self)->new(%data);
+}
 
-                my $rel_class = $self->schema->relationships->{$rel}->class;
+sub column {
+    my $self = shift;
 
-                if (ref $rel_values eq 'ARRAY') {
-                    $self->_related->{$rel} ||= [];
-                    foreach my $rel_value (@$rel_values) {
-                        push @{$self->_related->{$rel}},
-                          $rel_class->new(%$rel_value);
-                    }
-                }
-                else {
-                    $self->_related->{$rel} = $rel_class->new(%$rel_values);
-                }
-            }
-        }
+    my $columns = $self->_columns;
+
+    if (@_ == 1) {
+        return defined $_[0] ? $columns->{$_[0]} : undef;
     }
+    elsif (@_ == 2) {
+        if (defined $columns->{$_[0]} && defined $_[1]) {
+            $self->is_modified(1) if $columns->{$_[0]} ne $_[1];
+        }
+        elsif (defined $columns->{$_[0]} || defined $_[1]) {
+            $self->is_modified(1);
+        }
 
-    # fake columns
-    $self->_columns->{$_} = $values{$_} foreach (keys %values);
+        $columns->{$_[0]} = $_[1];
+    }
 
     return $self;
-}
-
-sub schema {
-    my $class = shift;
-
-    my $class_name = ref $class ? ref $class : $class;
-
-    return $ObjectDB::Schema::objects{$class_name}
-      ||= ObjectDB::Schema->new($class_name, @_);
 }
 
 sub columns {
@@ -139,164 +107,90 @@ sub columns {
     }
 }
 
-sub sign {
-    my $self = shift;
-
-    my @values = map { $_ => $self->column($_) || '' } $self->columns;
-
-    my $class = ref($self);
-    return md5_hex($class . ':' . join(',', @values));
-}
-
-sub column {
-    my $self = shift;
-
-    my $columns = $self->_columns;
-
-    if (@_ == 1) {
-        return defined $_[0] ? $columns->{$_[0]} : undef;
-    }
-    elsif (@_ == 2) {
-        if (defined $columns->{$_[0]} && defined $_[1]) {
-            $self->is_modified(1) if $columns->{$_[0]} ne $_[1];
-        }
-        elsif (defined $columns->{$_[0]} || defined $_[1]) {
-            $self->is_modified(1);
-        }
-
-        $columns->{$_[0]} = $_[1];
-    }
-
-    return $self;
-}
-
-sub clone {
-    my $self = shift;
-
-    my %data;
-    foreach my $column ($self->schema->columns) {
-        next
-          if $self->schema->is_primary_key($column)
-              || $self->schema->is_unique_key($column);
-        $data{$column} = $self->column($column);
-    }
-
-    return (ref $self)->new(%data);
-}
-
-sub _create_related {
-    my $self = shift;
-
-    my $relationships = $self->schema->relationships;
-
-    # Nothing to do
-    return unless $relationships;
-
-    foreach my $rel_name (keys %{$relationships}) {
-        my $rel_type = $relationships->{$rel_name}->{type};
-
-        if (my $rel_values = $self->_related->{$rel_name}) {
-            if ($rel_type eq 'many to many') {
-                my $objects =
-                  $self->set_related($rel_name => $rel_values);
-                return unless $objects;
-
-                $self->related($rel_name => $objects);
-
-                return $self;
-            }
-            else {
-                my $data;
-
-                if (ref $rel_values eq 'ARRAY') {
-                    $data = $rel_values;
-                }
-                elsif (ref $rel_values eq 'HASH') {
-                    $data = [$rel_values];
-                }
-                elsif (ref $rel_values) {
-                    $data = [$rel_values->to_hash];
-                }
-                else {
-                    die
-                      "wrong params when setting '$rel_name' relationship: $rel_values";
-                }
-
-                if ($rel_type eq 'one to many') {
-                    my $objects = [];
-
-                    foreach my $d (@$data) {
-                        push @$objects,
-                          $self->create_related($rel_name => $d);
-                    }
-
-                    $self->related($rel_name => $objects);
-                }
-                else {
-                    my $rel_object =
-                      $self->create_related($rel_name => $data->[0]);
-                    $self->related($rel_name => $rel_object);
-                }
-            }
-        }
-    }
-}
-
-sub _update_related {
-    my $self = shift;
-
-    my $relationships = $self->schema->relationships;
-    return $self unless $relationships;
-
-    foreach my $rel_name (keys %$relationships) {
-        if (my $rel = $self->_related->{$rel_name}) {
-            my $type = $relationships->{$rel_name}->{type};
-
-            foreach my $object (ref $rel eq 'ARRAY' ? @$rel : ($rel)) {
-                $object->init_db($self->init_db);
-                $object->update;
-            }
-        }
-    }
-
-    return $self;
-}
-
-sub _delete_related {
-    my $self = shift;
-
-    my $relationships = $self->schema->relationships;
-    return $self unless $relationships;
-
-    my @rel_names = grep {
-             $relationships->{$_}->{type} eq 'many to many'
-          || $relationships->{$_}->{type} eq 'one to one'
-          || $relationships->{$_}->{type} eq 'one to many'
-    } (keys %{$relationships});
-
-    foreach my $rel_name (@rel_names) {
-        $self->delete_related($rel_name);
-    }
-
-    return $self;
-}
-
-sub begin_work {
-    my $self = shift;
-
-    return $self->init_db->begin_work;
-}
-
-sub rollback {
-    my $self = shift;
-
-    return $self->init_db->rollback;
-}
-
 sub commit {
     my $self = shift;
 
     return $self->init_db->commit;
+}
+
+sub count {
+    my $self = shift;
+    my %args  = @_;
+
+    die '->count must be called on object instance' unless ref($self);
+
+    my $dbh = $self->init_db;
+
+    my $table = $self->schema->table;
+    my @pk    = map {"`$table`.`$_`"} $self->schema->primary_keys;
+    my $pk    = join(',', @pk);
+
+    my $sql = ObjectDB::SQL->build('select', class => ref($self));
+    $sql->columns(\"COUNT(DISTINCT $pk)");
+    $sql->to_string;
+
+    if (my $sources = $args{source}) {
+        $sql->source($_) foreach @$sources;
+    }
+
+    $sql->where($args{where});
+    $sql->with($args{with});
+
+    $sql->_resolve_columns;
+    $sql->to_string;
+
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
+
+    my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
+    unless ($hash_ref && ref $hash_ref eq 'HASH') {
+        $self->error($dbh->errstr);
+        return;
+    }
+
+    my @values = values %$hash_ref;
+    return shift @values;
+}
+
+sub count_related {
+    my $self = shift;
+    my ($name, $args) = @_;
+
+    die 'at least the name of relationship is required' unless $name;
+
+    my $dbh = $self->init_db;
+
+    my $relationship = $self->_load_relationship($name);
+
+    $args->{where} ||= [];
+
+    if ($relationship->{type} eq 'many to many') {
+        my $map_from = $relationship->{map_from};
+        my $map_to   = $relationship->{map_to};
+
+        my ($to, $from) =
+          %{$relationship->map_class->schema->relationships->{$map_from}
+              ->{map}};
+
+        push @{$args->{where}},
+          (     $relationship->map_class->schema->table . '.'
+              . $to => $self->column($from));
+
+        $args->{source} =
+          [$relationship->to_self_map_source, $relationship->to_self_source];
+    }
+    else {
+        my ($from, $to) = %{$relationship->map};
+
+        push @{$args->{where}}, ($to => $self->column($from)),;
+    }
+
+    if ($relationship->where) {
+        push @{$args->{where}}, @{$relationship->where};
+    }
+
+    my $rel = $relationship->class->new;
+    $rel->init_db($self->init_db);
+    return $rel->count(%$args);
 }
 
 sub create {
@@ -342,130 +236,84 @@ sub create {
     return $self;
 }
 
-sub load {
+sub create_related {
     my $self = shift;
-    my %args = @_;
+    my ($name, $args) = @_;
 
-    my $class = ref $self ? ref $self : $self;
+    die '->create_related must be called on object instance' unless ref($self);
 
-    my $dbh = $self->init_db;
+    $args = $args->to_hash unless ref $args eq 'HASH';
 
-    my @columns;
-    foreach my $name ($self->columns) {
-        push @columns, $name
-          if $self->schema->is_primary_key($name)
-              || $self->schema->is_unique_key($name);
+    unless ($self->is_in_db) {
+        die "can't create related objects when object is not in db";
     }
 
-    Carp::croak "->load: no primary or unique keys specified" unless @columns;
+    my $relationship = $self->_load_relationship($name);
 
-    my $sql = ObjectDB::SQL->build('select', class => $class);
-
-    $sql->where([map { $_ => $self->column($_) } @columns]);
-    $sql->order_by();
-
-    my $with;
-    if ($with = $args{with}) {
-        $with = [$with] unless ref $with eq 'ARRAY';
-        $sql->_resolve_with($with);
+    unless ($relationship->{type} eq 'one to many'
+        || $relationship->{type} eq 'many to many'
+        || $relationship->{type} eq 'one to one')
+    {
+        die
+          "can be called only on 'one to many', 'one to one' or 'many to many' relationships";
     }
 
-    $sql->to_string;
-    warn "$sql" if $ENV{OBJECTDB_DEBUG};
+    if ($relationship->{type} eq 'many to many') {
+        my $object =
+          $self->find_related($name => {single => 1, where => [%$args]});
 
-    my $sth = $dbh->prepare("$sql");
-    unless ($sth) {
-        $self->error($DBI::errstr);
-        return;
-    }
+        # Already exists
+        return $object if $object;
 
-    my $rv = $sth->execute(@{$sql->bind});
-    unless ($rv) {
-        $self->error($DBI::errstr);
-        return;
-    }
+        my $map_from = $relationship->map_from;
+        my $map_to   = $relationship->map_to;
 
-    my $rows = $sth->fetchall_arrayref;
-    return unless $rows && @$rows;
+        my ($from_foreign_pk, $from_pk) =
+          %{$relationship->map_class->schema->relationships->{$map_from}
+              ->{map}};
 
-    my $object = $self->_map_rows_to_objects(
-        rows    => $rows,
-        columns => [$sql->columns],
-        with    => $with
-    )->[0];
+        my ($to_foreign_pk, $to_pk) =
+          %{$relationship->map_class->schema->relationships->{$map_to}
+              ->{map}};
 
-    $self->init(%{$object->to_hash});
+        $object = $relationship->class->new(%$args)->load;
 
-    $self->is_in_db(1);
-    $self->is_modified(0);
-
-    return $self;
-}
-
-sub update {
-    my $self = shift;
-    my %args = @_;
-
-    my $dbh = $self->init_db;
-
-    my @columns;
-    my @values;
-
-    if (!%args) {
-        Carp::croak "->update: no primary or unique keys specified"
-          unless grep {
-                 $self->schema->is_primary_key($_)
-              or $self->schema->is_unique_key($_)
-          } $self->columns;
-
-        # If not modified update only related objects
-        unless ($self->is_modified) {
-            warn 'Not modified' if DEBUG;
-            return $self->_update_related;
+        if ($object) {
+            my $rel = $relationship->map_class->new(
+                $from_foreign_pk => $self->column($from_pk),
+                $to_foreign_pk   => $object->column($to_pk)
+            );
+            $rel->init_db($self->init_db);
+            return $rel->create;
         }
+        else {
+            $object = $relationship->class->new(%$args)->create;
 
-        $args{where} =
-          [map { $_ => $self->column($_) } $self->schema->primary_keys];
+            # Create map object
+            my $rel = $relationship->map_class->new(
+                $from_foreign_pk => $self->column($from_pk),
+                $to_foreign_pk   => $object->column($to_pk)
+            );
+            $rel->init_db($self->init_db);
+            $rel->create;
 
-        @columns =
-          grep { !$self->schema->is_primary_key($_) } $self->columns;
-        @values = map { $self->column($_) } @columns;
-
-        die 'Object is empty, nothing to update' unless @columns && @values;
+            return $object;
+        }
     }
     else {
-        die 'set is required' unless $args{set};
+        my ($from, $to) = %{$relationship->map};
 
-        while (my ($key, $value) = each %{$args{set}}) {
-            push @columns, $key;
-            push @values,  $value;
+        my @params = ($to => $self->column($from));
+
+        if ($relationship->where) {
+            push @params, @{$relationship->where};
         }
+
+        my $object = $relationship->class->new(@params, %$args);
+
+        $object->init_db($self->init_db);
+        return $object->create;
     }
-
-    my $sql = ObjectDB::SQL->build('update');
-    $sql->table($self->schema->table);
-    $sql->columns(\@columns);
-    $sql->bind(\@values);
-    $sql->where([@{$args{where}}]) if $args{where};
-    $sql->to_string;
-
-    warn "$sql" if $ENV{OBJECTDB_DEBUG};
-
-    my $sth = $dbh->prepare("$sql");
-    unless ($sth) {
-        $self->error($DBI::errstr);
-        return;
-    }
-
-    my $rv = $sth->execute(@{$sql->bind});
-    unless ($rv && $rv eq '1') {
-        $self->error($DBI::errstr);
-        return;
-    }
-
-    $self->_update_related if ref $self;
-
-    return $self;
 }
 
 sub delete {
@@ -529,6 +377,47 @@ sub delete {
         return $count;
     }
 }
+
+sub delete_related {
+    my $self = shift;
+    my ($name, $args) = @_;
+
+    die '->delete_related must be called on object instance' unless ref($self);
+
+    my $relationship = $self->_load_relationship($name);
+
+    $args ||= {};
+    $args->{where} ||= [];
+
+    my $class_param = 'class';
+    if ($relationship->{type} eq 'many to many') {
+        my $map_from = $relationship->{map_from};
+        my $map_to   = $relationship->{map_to};
+
+        my ($to, $from) =
+          %{$relationship->map_class->schema->relationships->{$map_from}
+              ->{map}};
+
+        push @{$args->{where}}, ($to => $self->column($from));
+
+        $class_param = 'map_class';
+    }
+    else {
+        my ($from, $to) = %{$relationship->{map}};
+
+        push @{$args->{where}}, ($to => $self->column($from));
+    }
+
+    if ($relationship->where) {
+        push @{$args->{where}}, @{$relationship->where};
+    }
+
+    my $rel = $relationship->$class_param->new;
+    $rel->init_db($self->init_db);
+    return $rel->delete(%$args);
+}
+
+sub error { @_ > 1 ? $_[0]->{error} = $_[1] : $_[0]->{error} }
 
 sub find {
     my $self = shift;
@@ -617,176 +506,6 @@ sub find {
     }
 }
 
-sub count {
-    my $self = shift;
-    my %args  = @_;
-
-    die '->count must be called on object instance' unless ref($self);
-
-    my $dbh = $self->init_db;
-
-    my $table = $self->schema->table;
-    my @pk    = map {"`$table`.`$_`"} $self->schema->primary_keys;
-    my $pk    = join(',', @pk);
-
-    my $sql = ObjectDB::SQL->build('select', class => ref($self));
-    $sql->columns(\"COUNT(DISTINCT $pk)");
-    $sql->to_string;
-
-    if (my $sources = $args{source}) {
-        $sql->source($_) foreach @$sources;
-    }
-
-    $sql->where($args{where});
-    $sql->with($args{with});
-
-    $sql->_resolve_columns;
-    $sql->to_string;
-
-    warn "$sql" if $ENV{OBJECTDB_DEBUG};
-
-    my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
-    unless ($hash_ref && ref $hash_ref eq 'HASH') {
-        $self->error($dbh->errstr);
-        return;
-    }
-
-    my @values = values %$hash_ref;
-    return shift @values;
-}
-
-sub _load_relationship {
-    my $self = shift;
-    my ($name) = @_;
-
-    die 'relationship name is required' unless $name;
-
-    die "unknown relationship $name"
-      unless $self->schema->relationships
-          && exists $self->schema->relationships->{$name};
-
-    my $relationship = $self->schema->relationships->{$name};
-
-    if ($relationship->type eq 'proxy') {
-        my $proxy_key = $relationship->proxy_key;
-
-        die "proxy_key is required for $name" unless $proxy_key;
-
-        $name = $self->column($proxy_key);
-
-        die "proxy_key '$proxy_key' is empty" unless $name;
-
-        $relationship = $self->schema->relationships->{$name};
-
-        die "unknown relatioship $name" unless $relationship;
-    }
-
-    return $relationship;
-}
-
-sub create_related {
-    my $self = shift;
-    my ($name, $args) = @_;
-
-    die '->create_related must be called on object instance' unless ref($self);
-
-    $args = $args->to_hash unless ref $args eq 'HASH';
-
-    unless ($self->is_in_db) {
-        die "can't create related objects when object is not in db";
-    }
-
-    my $relationship = $self->_load_relationship($name);
-
-    unless ($relationship->{type} eq 'one to many'
-        || $relationship->{type} eq 'many to many'
-        || $relationship->{type} eq 'one to one')
-    {
-        die
-          "can be called only on 'one to many', 'one to one' or 'many to many' relationships";
-    }
-
-    if ($relationship->{type} eq 'many to many') {
-        my $object =
-          $self->find_related($name => {single => 1, where => [%$args]});
-
-        # Already exists
-        return $object if $object;
-
-        my $map_from = $relationship->map_from;
-        my $map_to   = $relationship->map_to;
-
-        my ($from_foreign_pk, $from_pk) =
-          %{$relationship->map_class->schema->relationships->{$map_from}
-              ->{map}};
-
-        my ($to_foreign_pk, $to_pk) =
-          %{$relationship->map_class->schema->relationships->{$map_to}
-              ->{map}};
-
-        $object = $relationship->class->new(%$args)->load;
-
-        if ($object) {
-            my $rel = $relationship->map_class->new(
-                $from_foreign_pk => $self->column($from_pk),
-                $to_foreign_pk   => $object->column($to_pk)
-            );
-            $rel->init_db($self->init_db);
-            return $rel->create;
-        }
-        else {
-            $object = $relationship->class->new(%$args)->create;
-
-            # Create map object
-            my $rel = $relationship->map_class->new(
-                $from_foreign_pk => $self->column($from_pk),
-                $to_foreign_pk   => $object->column($to_pk)
-            );
-            $rel->init_db($self->init_db);
-            $rel->create;
-
-            return $object;
-        }
-    }
-    else {
-        my ($from, $to) = %{$relationship->map};
-
-        my @params = ($to => $self->column($from));
-
-        if ($relationship->where) {
-            push @params, @{$relationship->where};
-        }
-
-        my $object = $relationship->class->new(@params, %$args);
-
-        $object->init_db($self->init_db);
-        return $object->create;
-    }
-}
-
-sub related {
-    my $self = shift;
-    my $name = shift;
-
-    if ($_[0]) {
-        $self->_related->{$name} = $_[0];
-        return $self;
-    }
-
-    return $self->_related->{$name};
-}
-
-sub load_related {
-    my $self = shift;
-    my ($name, $args) = @_;
-
-    my $objects = $self->find_related($name, $args);
-
-    $self->related($name => $objects);
-
-    return $objects;
-}
-
 sub find_related {
     my $self = shift;
     my ($name, $args) = @_;
@@ -838,111 +557,162 @@ sub find_related {
     return $rel->find(%$args);
 }
 
-sub count_related {
+sub init {
     my $self = shift;
-    my ($name, $args) = @_;
 
-    die 'at least the name of relationship is required' unless $name;
+    my %values = ref $_[0] ? %{$_[0]} : @_;
+    foreach my $key ($self->schema->columns) {
+        if (exists $values{$key}) {
+            $self->column($key => $values{$key});
+        }
+        elsif (
+            !defined $self->column($key)
+            && defined(
+                my $default = $self->schema->columns_map->{$key}->{default}
+            )
+          )
+        {
+            $self->_columns->{$key} = $default;
+        }
+    }
+
+    if ($self->schema->relationships) {
+        foreach my $rel (keys %{$self->schema->relationships}) {
+            if (exists $values{$rel}) {
+                my $rel_values = delete $values{$rel};
+
+                my $rel_class = $self->schema->relationships->{$rel}->class;
+
+                if (ref $rel_values eq 'ARRAY') {
+                    $self->_related->{$rel} ||= [];
+                    foreach my $rel_value (@$rel_values) {
+                        push @{$self->_related->{$rel}},
+                          $rel_class->new(%$rel_value);
+                    }
+                }
+                else {
+                    $self->_related->{$rel} = $rel_class->new(%$rel_values);
+                }
+            }
+        }
+    }
+
+    # fake columns
+    $self->_columns->{$_} = $values{$_} foreach (keys %values);
+
+    return $self;
+}
+
+sub init_db {
+    my $self = shift;
+
+    return $self->{init_db} unless @_;
+
+    $self->{init_db} = $_[0];
+}
+
+sub is_modified {
+    @_ > 1 ? $_[0]->{is_modified} = $_[1] : $_[0]->{is_modified};
+}
+
+sub is_in_db { @_ > 1 ? $_[0]->{is_in_db} = $_[1] : $_[0]->{is_in_db} }
+
+sub load {
+    my $self = shift;
+    my %args = @_;
+
+    my $class = ref $self ? ref $self : $self;
 
     my $dbh = $self->init_db;
 
-    my $relationship = $self->_load_relationship($name);
-
-    $args->{where} ||= [];
-
-    if ($relationship->{type} eq 'many to many') {
-        my $map_from = $relationship->{map_from};
-        my $map_to   = $relationship->{map_to};
-
-        my ($to, $from) =
-          %{$relationship->map_class->schema->relationships->{$map_from}
-              ->{map}};
-
-        push @{$args->{where}},
-          (     $relationship->map_class->schema->table . '.'
-              . $to => $self->column($from));
-
-        $args->{source} =
-          [$relationship->to_self_map_source, $relationship->to_self_source];
-    }
-    else {
-        my ($from, $to) = %{$relationship->map};
-
-        push @{$args->{where}}, ($to => $self->column($from)),;
+    my @columns;
+    foreach my $name ($self->columns) {
+        push @columns, $name
+          if $self->schema->is_primary_key($name)
+              || $self->schema->is_unique_key($name);
     }
 
-    if ($relationship->where) {
-        push @{$args->{where}}, @{$relationship->where};
+    Carp::croak "->load: no primary or unique keys specified" unless @columns;
+
+    my $sql = ObjectDB::SQL->build('select', class => $class);
+
+    $sql->where([map { $_ => $self->column($_) } @columns]);
+    $sql->order_by();
+
+    my $with;
+    if ($with = $args{with}) {
+        $with = [$with] unless ref $with eq 'ARRAY';
+        $sql->_resolve_with($with);
     }
 
-    my $rel = $relationship->class->new;
-    $rel->init_db($self->init_db);
-    return $rel->count(%$args);
+    $sql->to_string;
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
+
+    my $sth = $dbh->prepare("$sql");
+    unless ($sth) {
+        $self->error($DBI::errstr);
+        return;
+    }
+
+    my $rv = $sth->execute(@{$sql->bind});
+    unless ($rv) {
+        $self->error($DBI::errstr);
+        return;
+    }
+
+    my $rows = $sth->fetchall_arrayref;
+    return unless $rows && @$rows;
+
+    my $object = $self->_map_rows_to_objects(
+        rows    => $rows,
+        columns => [$sql->columns],
+        with    => $with
+    )->[0];
+
+    $self->init(%{$object->to_hash});
+
+    $self->is_in_db(1);
+    $self->is_modified(0);
+
+    return $self;
 }
 
-sub update_related {
+sub load_related {
     my $self = shift;
     my ($name, $args) = @_;
 
-    my $relationship = $self->_load_relationship($name);
+    my $objects = $self->find_related($name, $args);
 
-    if ($relationship->type eq 'many to many') {
-        die 'many to many is not supported';
-    }
-    else {
-        my ($from, $to) = %{$relationship->{map}};
+    $self->related($name => $objects);
 
-        my $where = delete $args->{where} || [];
-
-        if ($relationship->where) {
-            push @{$args->{where}}, @{$relationship->where};
-        }
-
-        push @{$args->{where}}, ($to => $self->column($from));
-    }
-
-    my $rel = $relationship->class->new;
-    $rel->init_db($self->init_db);
-    return $rel->update(%$args);
+    return $objects;
 }
 
-sub delete_related {
+sub related {
     my $self = shift;
-    my ($name, $args) = @_;
+    my $name = shift;
 
-    die '->delete_related must be called on object instance' unless ref($self);
-
-    my $relationship = $self->_load_relationship($name);
-
-    $args ||= {};
-    $args->{where} ||= [];
-
-    my $class_param = 'class';
-    if ($relationship->{type} eq 'many to many') {
-        my $map_from = $relationship->{map_from};
-        my $map_to   = $relationship->{map_to};
-
-        my ($to, $from) =
-          %{$relationship->map_class->schema->relationships->{$map_from}
-              ->{map}};
-
-        push @{$args->{where}}, ($to => $self->column($from));
-
-        $class_param = 'map_class';
-    }
-    else {
-        my ($from, $to) = %{$relationship->{map}};
-
-        push @{$args->{where}}, ($to => $self->column($from));
+    if ($_[0]) {
+        $self->_related->{$name} = $_[0];
+        return $self;
     }
 
-    if ($relationship->where) {
-        push @{$args->{where}}, @{$relationship->where};
-    }
+    return $self->_related->{$name};
+}
 
-    my $rel = $relationship->$class_param->new;
-    $rel->init_db($self->init_db);
-    return $rel->delete(%$args);
+sub rollback {
+    my $self = shift;
+
+    return $self->init_db->rollback;
+}
+
+sub schema {
+    my $class = shift;
+
+    my $class_name = ref $class ? ref $class : $class;
+
+    return $ObjectDB::Schema::objects{$class_name}
+      ||= ObjectDB::Schema->new($class_name, @_);
 }
 
 sub set_related {
@@ -978,6 +748,244 @@ sub set_related {
     }
 
     return $relationship->{type} eq 'one to one' ? $objects->[0] : $objects;
+}
+
+sub sign {
+    my $self = shift;
+
+    my @values = map { $_ => $self->column($_) || '' } $self->columns;
+
+    my $class = ref($self);
+    return md5_hex($class . ':' . join(',', @values));
+}
+
+sub to_hash {
+    my $self = shift;
+
+    my @columns = keys %{$self->{_columns}};
+
+    my $hash = {};
+    foreach my $key (@columns) {
+        $hash->{$key} = $self->column($key);
+    }
+
+    foreach my $name (keys %{$self->_related}) {
+        my $rel = $self->_related->{$name};
+
+        die "unknown '$name' relationship" unless $rel;
+
+        if (ref $rel eq 'ARRAY') {
+            $hash->{$name} = [];
+            foreach my $r (@$rel) {
+                push @{$hash->{$name}}, $r->to_hash;
+            }
+        }
+        else {
+            $hash->{$name} = $rel->to_hash;
+        }
+    }
+
+    return $hash;
+}
+
+sub update {
+    my $self = shift;
+    my %args = @_;
+
+    my $dbh = $self->init_db;
+
+    my @columns;
+    my @values;
+
+    if (!%args) {
+        Carp::croak "->update: no primary or unique keys specified"
+          unless grep {
+                 $self->schema->is_primary_key($_)
+              or $self->schema->is_unique_key($_)
+          } $self->columns;
+
+        # If not modified update only related objects
+        unless ($self->is_modified) {
+            warn 'Not modified' if DEBUG;
+            return $self->_update_related;
+        }
+
+        $args{where} =
+          [map { $_ => $self->column($_) } $self->schema->primary_keys];
+
+        @columns =
+          grep { !$self->schema->is_primary_key($_) } $self->columns;
+        @values = map { $self->column($_) } @columns;
+
+        die 'Object is empty, nothing to update' unless @columns && @values;
+    }
+    else {
+        die 'set is required' unless $args{set};
+
+        while (my ($key, $value) = each %{$args{set}}) {
+            push @columns, $key;
+            push @values,  $value;
+        }
+    }
+
+    my $sql = ObjectDB::SQL->build('update');
+    $sql->table($self->schema->table);
+    $sql->columns(\@columns);
+    $sql->bind(\@values);
+    $sql->where([@{$args{where}}]) if $args{where};
+    $sql->to_string;
+
+    warn "$sql" if $ENV{OBJECTDB_DEBUG};
+
+    my $sth = $dbh->prepare("$sql");
+    unless ($sth) {
+        $self->error($DBI::errstr);
+        return;
+    }
+
+    my $rv = $sth->execute(@{$sql->bind});
+    unless ($rv && $rv eq '1') {
+        $self->error($DBI::errstr);
+        return;
+    }
+
+    $self->_update_related if ref $self;
+
+    return $self;
+}
+
+sub update_related {
+    my $self = shift;
+    my ($name, $args) = @_;
+
+    my $relationship = $self->_load_relationship($name);
+
+    if ($relationship->type eq 'many to many') {
+        die 'many to many is not supported';
+    }
+    else {
+        my ($from, $to) = %{$relationship->{map}};
+
+        my $where = delete $args->{where} || [];
+
+        if ($relationship->where) {
+            push @{$args->{where}}, @{$relationship->where};
+        }
+
+        push @{$args->{where}}, ($to => $self->column($from));
+    }
+
+    my $rel = $relationship->class->new;
+    $rel->init_db($self->init_db);
+    return $rel->update(%$args);
+}
+
+sub _columns { @_ > 1 ? $_[0]->{_columns} = $_[1] : $_[0]->{_columns} }
+
+sub _create_related {
+    my $self = shift;
+
+    my $relationships = $self->schema->relationships;
+
+    # Nothing to do
+    return unless $relationships;
+
+    foreach my $rel_name (keys %{$relationships}) {
+        my $rel_type = $relationships->{$rel_name}->{type};
+
+        if (my $rel_values = $self->_related->{$rel_name}) {
+            if ($rel_type eq 'many to many') {
+                my $objects =
+                  $self->set_related($rel_name => $rel_values);
+                return unless $objects;
+
+                $self->related($rel_name => $objects);
+
+                return $self;
+            }
+            else {
+                my $data;
+
+                if (ref $rel_values eq 'ARRAY') {
+                    $data = $rel_values;
+                }
+                elsif (ref $rel_values eq 'HASH') {
+                    $data = [$rel_values];
+                }
+                elsif (ref $rel_values) {
+                    $data = [$rel_values->to_hash];
+                }
+                else {
+                    die
+                      "wrong params when setting '$rel_name' relationship: $rel_values";
+                }
+
+                if ($rel_type eq 'one to many') {
+                    my $objects = [];
+
+                    foreach my $d (@$data) {
+                        push @$objects,
+                          $self->create_related($rel_name => $d);
+                    }
+
+                    $self->related($rel_name => $objects);
+                }
+                else {
+                    my $rel_object =
+                      $self->create_related($rel_name => $data->[0]);
+                    $self->related($rel_name => $rel_object);
+                }
+            }
+        }
+    }
+}
+
+sub _delete_related {
+    my $self = shift;
+
+    my $relationships = $self->schema->relationships;
+    return $self unless $relationships;
+
+    my @rel_names = grep {
+             $relationships->{$_}->{type} eq 'many to many'
+          || $relationships->{$_}->{type} eq 'one to one'
+          || $relationships->{$_}->{type} eq 'one to many'
+    } (keys %{$relationships});
+
+    foreach my $rel_name (@rel_names) {
+        $self->delete_related($rel_name);
+    }
+
+    return $self;
+}
+
+sub _load_relationship {
+    my $self = shift;
+    my ($name) = @_;
+
+    die 'relationship name is required' unless $name;
+
+    die "unknown relationship $name"
+      unless $self->schema->relationships
+          && exists $self->schema->relationships->{$name};
+
+    my $relationship = $self->schema->relationships->{$name};
+
+    if ($relationship->type eq 'proxy') {
+        my $proxy_key = $relationship->proxy_key;
+
+        die "proxy_key is required for $name" unless $proxy_key;
+
+        $name = $self->column($proxy_key);
+
+        die "proxy_key '$proxy_key' is empty" unless $name;
+
+        $relationship = $self->schema->relationships->{$name};
+
+        die "unknown relatioship $name" unless $relationship;
+    }
+
+    return $relationship;
 }
 
 sub _map_rows_to_objects {
@@ -1076,33 +1084,26 @@ sub _map_rows_to_objects {
     return $objects;
 }
 
-sub to_hash {
+sub _related { @_ > 1 ? $_[0]->{_related} = $_[1] : $_[0]->{_related} }
+
+sub _update_related {
     my $self = shift;
 
-    my @columns = keys %{$self->{_columns}};
+    my $relationships = $self->schema->relationships;
+    return $self unless $relationships;
 
-    my $hash = {};
-    foreach my $key (@columns) {
-        $hash->{$key} = $self->column($key);
-    }
+    foreach my $rel_name (keys %$relationships) {
+        if (my $rel = $self->_related->{$rel_name}) {
+            my $type = $relationships->{$rel_name}->{type};
 
-    foreach my $name (keys %{$self->_related}) {
-        my $rel = $self->_related->{$name};
-
-        die "unknown '$name' relationship" unless $rel;
-
-        if (ref $rel eq 'ARRAY') {
-            $hash->{$name} = [];
-            foreach my $r (@$rel) {
-                push @{$hash->{$name}}, $r->to_hash;
+            foreach my $object (ref $rel eq 'ARRAY' ? @$rel : ($rel)) {
+                $object->init_db($self->init_db);
+                $object->update;
             }
         }
-        else {
-            $hash->{$name} = $rel->to_hash;
-        }
     }
 
-    return $hash;
+    return $self;
 }
 
 1;
