@@ -100,11 +100,11 @@ sub columns {
 
     my $columns = $self->_columns;
 
-    if ( @_ ){
+    if (@_) {
         !(@_ % 2) || die 'odd number of elements';
         my %key_value_pairs = @_;
         while (my ($key, $value) = each %key_value_pairs) {
-            $self->column( $key, $value );
+            $self->column($key, $value);
         }
         return $self;
     }
@@ -116,7 +116,8 @@ sub columns {
             }
             elsif (
                 defined(
-                    my $default = $self->schema->columns_map->{$key}->{default}
+                    my $default =
+                      $self->schema->columns_map->{$key}->{default}
                 )
               )
             {
@@ -187,7 +188,8 @@ sub _create_related {
 
             if (my $rel_values = $self->_related->{$rel_name}) {
                 if ($rel_type eq 'many to many') {
-                    my $objects = $self->set_related($rel_name => $rel_values);
+                    my $objects =
+                      $self->set_related($rel_name => $rel_values);
                     return unless $objects;
 
                     $self->related($rel_name => $objects);
@@ -222,7 +224,8 @@ sub _create_related {
                         $self->related($rel_name => $objects);
                     }
                     else {
-                        my $rel_object = $self->create_related($rel_name => $data->[0]);
+                        my $rel_object =
+                          $self->create_related($rel_name => $data->[0]);
                         $self->related($rel_name => $rel_object);
                     }
                 }
@@ -305,17 +308,13 @@ sub create {
 
     my @values = map { $self->column($_) } $self->columns;
 
-    #warn "$sql" if $ENV{OBJECTDB_DEBUG};
-
     my $sth = $dbh->prepare("$sql");
-    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
         $self->error($DBI::errstr);
         return;
     }
 
-    my $rv  = $sth->execute(@values);
-    if ($dbh->errstr){warn $sql." @values"; }
+    my $rv = $sth->execute(@values);
     unless ($rv && $rv eq '1') {
         $self->error($DBI::errstr);
         return;
@@ -354,7 +353,7 @@ sub load {
 
     Carp::croak "no primary or unique keys specified" unless @columns;
 
-    my $sql = ObjectDB::SQL->build('select', class=>$class);
+    my $sql = ObjectDB::SQL->build('select', class => $class);
 
     $sql->where([map { $_ => $self->column($_) } @columns]);
     $sql->order_by();
@@ -369,13 +368,12 @@ sub load {
     warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
-    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
         $self->error($DBI::errstr);
         return;
     }
 
-    my $rv  = $sth->execute(@{$sql->bind});
+    my $rv = $sth->execute(@{$sql->bind});
     unless ($rv) {
         $self->error($DBI::errstr);
         return;
@@ -415,10 +413,11 @@ sub update {
             return $self->_update_related;
         }
 
-        Carp::croak "no primary or unique keys specified" unless grep {
-                  $self->schema->is_primary_key($_)
-                    or $self->schema->is_unique_key($_)
-        } $self->columns;
+        Carp::croak "no primary or unique keys specified"
+          unless grep {
+                 $self->schema->is_primary_key($_)
+              or $self->schema->is_unique_key($_)
+          } $self->columns;
 
         $args{where} =
           [map { $_ => $self->column($_) } $self->schema->primary_keys];
@@ -448,13 +447,12 @@ sub update {
     warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
-    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
         $self->error($DBI::errstr);
         return;
     }
 
-    my $rv  = $sth->execute(@{$sql->bind});
+    my $rv = $sth->execute(@{$sql->bind});
     unless ($rv && $rv eq '1') {
         $self->error($DBI::errstr);
         return;
@@ -493,13 +491,12 @@ sub delete {
         $self->_delete_related;
 
         my $sth = $dbh->prepare("$sql");
-    if ($dbh->errstr){warn $sql; }
         unless ($sth) {
             $self->error($DBI::errstr);
             return;
         }
 
-        my $rv  = $sth->execute(@{$sql->bind});
+        my $rv = $sth->execute(@{$sql->bind});
         unless ($rv && $rv eq '1') {
             $self->error($DBI::errstr);
             return;
@@ -535,7 +532,7 @@ sub find {
     my $single   = $args{single};
     $iterator = undef if $single;
 
-    my $sql = ObjectDB::SQL->build('select', class=>$class);
+    my $sql = ObjectDB::SQL->build('select', class => $class);
 
 
     if (my $cols = $args{columns}) {
@@ -567,8 +564,8 @@ sub find {
         $sql->_resolve_with($with);
     }
 
-    $sql->where( $args{where} );
-    $sql->order_by( $args{order_by} );
+    $sql->where($args{where});
+    $sql->order_by($args{order_by});
 
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
@@ -578,15 +575,16 @@ sub find {
     warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
-    if ($dbh->errstr){warn $sql; }
     unless ($sth) {
+
         #$self->error($DBI::errstr);
         return;
     }
 
-    my $rv  = $sth->execute(@{$sql->bind});
+    my $rv = $sth->execute(@{$sql->bind});
     unless ($rv) {
         warn $DBI::errstr;
+
         #$self->error($DBI::errstr);
         return;
     }
@@ -615,24 +613,24 @@ sub find {
 
 sub count {
     my $class = shift;
-    my %args = @_;
+    my %args  = @_;
 
     my $dbh = $class->init_db;
 
     my $table = $class->schema->table;
-    my @pk = map {"`$table`.`$_`"} $class->schema->primary_keys;
-    my $pk = join(',', @pk);
+    my @pk    = map {"`$table`.`$_`"} $class->schema->primary_keys;
+    my $pk    = join(',', @pk);
 
-    my $sql = ObjectDB::SQL->build('select', class=>$class);
-    $sql->columns(\"COUNT(DISTINCT $pk)");#"
+    my $sql = ObjectDB::SQL->build('select', class => $class);
+    $sql->columns(\"COUNT(DISTINCT $pk)");    #"
     $sql->to_string;
 
     if (my $sources = $args{source}) {
         $sql->source($_) foreach @$sources;
     }
 
-    $sql->where( $args{where} );
-    $sql->with( $args{with} );
+    $sql->where($args{where});
+    $sql->with($args{with});
 
     $sql->_resolve_columns;
     $sql->to_string;
@@ -964,7 +962,7 @@ sub _map_rows_to_objects {
     my $with    = $params{with};
     my $columns = $params{columns};
 
-    my $map = {};
+    my $map     = {};
     my $objects = [];
 
     foreach my $row (@$rows) {
@@ -989,24 +987,25 @@ sub _map_rows_to_objects {
 
         next unless $with;
 
-        my $parent_object = $object;
+        my $parent_object  = $object;
         my @recent_parents = ($object);
         foreach my $rel_info (@$with) {
-#warn "################NAME: ".$rel_info->{name} if $ENV{OBJECTDB_DEBUG};
-            if ( $rel_info->{subwith} ) {
+            if ($rel_info->{subwith}) {
                 foreach my $recent_parent (@recent_parents) {
-                    $parent_object = $recent_parent->_related->{ $rel_info->{subwith} };
+                    $parent_object =
+                      $recent_parent->_related->{$rel_info->{subwith}};
                     last if $parent_object;
                 }
-#warn "PARENT NOT FOUND " unless $parent_object;
-                unless ( $parent_object ){
+
+                unless ($parent_object) {
                     map { $_ => shift @$row } @{$rel_info->{columns}};
                     next;
                 }
             }
 
-            # parent object can be array ref if !$rel_info->{subwith}
-            $parent_object = $parent_object->[-1] if ref $parent_object eq 'ARRAY';
+            # Parent object can be array ref if !$rel_info->{subwith}
+            $parent_object = $parent_object->[-1]
+              if ref $parent_object eq 'ARRAY';
 
             my @values = map { $_ => shift @$row } @{$rel_info->{columns}};
 
@@ -1024,23 +1023,19 @@ sub _map_rows_to_objects {
             my $sign = $rel_info->{name} . $rel_object->sign;
 
 # TO DO: Test
-            if ( $map->{$sign} ){
-            unshift ( @recent_parents, $map->{$sign} );
-#warn "++++++++++++++NEXT: ".ref($rel_object);
+            if ($map->{$sign}) {
+                unshift(@recent_parents, $map->{$sign});
                 next;
             }
 
-            unshift ( @recent_parents, $rel_object );
-
-#warn "++++++++++++++".ref($rel_object) if $ENV{OBJECTDB_DEBUG};
+            unshift(@recent_parents, $rel_object);
 
             $map->{$sign} = $rel_object;
 
             if (   $relationship->{type} eq 'many to one'
                 || $relationship->{type} eq 'one to one')
             {
-                $parent_object->_related->{$rel_info->{name}} =
-                  $rel_object;
+                $parent_object->_related->{$rel_info->{name}} = $rel_object;
             }
             else {
                 $parent_object->_related->{$rel_info->{name}} ||= [];
