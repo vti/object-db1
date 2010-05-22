@@ -398,6 +398,10 @@ sub delete_related {
           %{$relationship->map_class->schema->relationships->{$map_from}
               ->{map}};
 
+        for (my $i = 0; $i < @{$args->{where}}; $i += 2) {
+            $args->{where}->[$i] = "$map_to." . $args->{where}->[$i];
+        }
+
         push @{$args->{where}}, ($to => $self->column($from));
 
         $class_param = 'map_class';
@@ -414,7 +418,57 @@ sub delete_related {
 
     my $rel = $relationship->$class_param->new;
     $rel->init_db($self->init_db);
-    return $rel->delete(%$args);
+
+    my $ok = $rel->delete(%$args);
+    return $ok unless $ok;
+
+    # Do nothing if no preloaded objects found
+    my $related = $self->_related->{$name};
+    return $ok unless $related;
+
+    # Remove deleted objects from parent object
+    my $objects = [];
+    $related = [$related] unless ref($related) eq 'ARRAY';
+
+    my %where = @{$args->{where}};
+    if ($relationship->type eq 'many to many') {
+        my ($to, $from) =
+          %{$relationship->map_class->schema->relationships->{$relationship->{map_from}}
+              ->{map}};
+        delete $where{$to};
+
+        # Remove everything if we don't have any specific columns
+        unless (%where) {
+            delete $self->_related->{$name};
+            return $ok;
+        }
+
+        # Cut off prefixes
+        foreach my $key (keys %where) {
+            my $v = delete $where{$key};
+            $key =~ s/^.*?\.//;
+            $where{$key} = $v;
+        }
+    }
+
+    OBJECT: foreach my $rel (@$related) {
+        foreach my $arg (keys %where) {
+            my $value = $rel->column($arg);
+
+            next OBJECT if defined $value && $value eq $where{$arg};
+        }
+
+        push @$objects, $rel;
+    }
+
+    if (@$objects) {
+        $self->_related->{$name} = $objects;
+    }
+    else {
+        delete $self->_related->{$name};
+    }
+
+    return $ok;
 }
 
 sub error { @_ > 1 ? $_[0]->{error} = $_[1] : $_[0]->{error} }
