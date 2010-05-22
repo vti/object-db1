@@ -30,7 +30,11 @@ sub new {
 }
 
 sub init_db {
-    Carp::croak('->init_db must be overwritten');
+    my $self = shift;
+
+    return $self->{init_db} unless @_;
+
+    $self->{init_db} = $_[0];
 }
 
 sub error { @_ > 1 ? $_[0]->{error} = $_[1] : $_[0]->{error} }
@@ -133,7 +137,6 @@ sub columns {
         return @columns;
 
     }
-
 }
 
 sub sign {
@@ -250,6 +253,7 @@ sub _update_related {
             my $type = $relationships->{$rel_name}->{type};
 
             foreach my $object (ref $rel eq 'ARRAY' ? @$rel : ($rel)) {
+                $object->init_db($self->init_db);
                 $object->update;
             }
         }
@@ -408,7 +412,6 @@ sub update {
     my @values;
 
     if (!%args) {
-
         Carp::croak "->update: no primary or unique keys specified"
           unless grep {
                  $self->schema->is_primary_key($_)
@@ -517,6 +520,7 @@ sub delete {
 
         my $count = 0;
         foreach my $object (@$objects) {
+            $object->init_db($self->init_db);
             return unless $object->delete;
 
             $count++;
@@ -723,19 +727,23 @@ sub create_related {
         $object = $relationship->class->new(%$args)->load;
 
         if ($object) {
-            return $relationship->map_class->new(
+            my $rel = $relationship->map_class->new(
                 $from_foreign_pk => $self->column($from_pk),
                 $to_foreign_pk   => $object->column($to_pk)
-            )->create;
+            );
+            $rel->init_db($self->init_db);
+            return $rel->create;
         }
         else {
             $object = $relationship->class->new(%$args)->create;
 
             # Create map object
-            $relationship->map_class->new(
+            my $rel = $relationship->map_class->new(
                 $from_foreign_pk => $self->column($from_pk),
                 $to_foreign_pk   => $object->column($to_pk)
-            )->create;
+            );
+            $rel->init_db($self->init_db);
+            $rel->create;
 
             return $object;
         }
@@ -751,6 +759,7 @@ sub create_related {
 
         my $object = $relationship->class->new(@params, %$args);
 
+        $object->init_db($self->init_db);
         return $object->create;
     }
 }
@@ -867,6 +876,7 @@ sub count_related {
     }
 
     my $rel = $relationship->class->new;
+    $rel->init_db($self->init_db);
     return $rel->count(%$args);
 }
 
@@ -891,7 +901,9 @@ sub update_related {
         push @{$args->{where}}, ($to => $self->column($from));
     }
 
-    return $relationship->class->update(%$args);
+    my $rel = $relationship->class->new;
+    $rel->init_db($self->init_db);
+    return $rel->update(%$args);
 }
 
 sub delete_related {
@@ -929,6 +941,7 @@ sub delete_related {
     }
 
     my $rel = $relationship->$class_param->new;
+    $rel->init_db($self->init_db);
     return $rel->delete(%$args);
 }
 
