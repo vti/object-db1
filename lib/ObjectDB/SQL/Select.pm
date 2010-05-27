@@ -35,21 +35,22 @@ sub source {
     my $self   = shift;
     my $source = shift;
 
+    my $success;
+
     # Create main source if request comes from a schema class
     # and no source has been defined so far
     if ( $self->class && !@{$self->_sources} ){
         my $main_source = $self->class->schema->table;
-        $self->_save_source($main_source);
+        $success = $self->_save_source($main_source);
     }
 
     # Save source that has been passed (if any)
     if ( defined $source && $source ne '' ){
-        return $self->_save_source($source);
+        $success = $self->_save_source($source);
     }
 
     # Return
-    return $self;
-
+    return $success;
 }
 
 
@@ -83,12 +84,10 @@ sub _save_source {
         $success = 1;
     }
 
-    return undef unless $success;
-
-    # Return
-    return $self;
+    return $success;
 
 }
+
 
 sub columns {
     my $self = shift;
