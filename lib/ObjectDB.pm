@@ -136,7 +136,6 @@ sub count {
     $sql->with($args{with});
 
     $sql->_resolve_columns;
-    $sql->to_string;
 
     warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
@@ -203,7 +202,6 @@ sub create {
     $sql->table($self->schema->table);
     $sql->columns([$self->columns]);
     $sql->driver($dbh->{Driver}->{Name});
-    $sql->to_string;
 
     my @values = map { $self->column($_) } $self->columns;
 
@@ -339,7 +337,6 @@ sub delete {
         $sql->class(ref($self));
         $sql->table($self->schema->table);
         $sql->where([@{$args{where}}]) if $args{where};
-        $sql->to_string;
 
         warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
@@ -517,7 +514,6 @@ sub find {
     $sql->_resolve_with;
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
-    $sql->to_string;
 
     my $sth = $dbh->prepare("$sql");
     unless ($sth) {
@@ -685,7 +681,6 @@ sub load {
     $sql->order_by();
     $sql->with($args{with});
     $sql->_resolve_with;
-    $sql->to_string;
 
     my $sth = $dbh->prepare("$sql");
     unless ($sth) {
@@ -871,7 +866,6 @@ sub update {
     $sql->columns(\@columns);
     $sql->bind(\@values);
     $sql->where([@{$args{where}}]) if $args{where};
-    $sql->to_string;
 
     warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
