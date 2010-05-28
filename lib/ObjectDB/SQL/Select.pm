@@ -14,7 +14,20 @@ sub new {
     return $self;
 }
 
-sub with     { @_ > 1 ? $_[0]->{with}     = $_[1] : $_[0]->{with} }
+sub with {
+
+    my $self = shift;
+    my $with = shift;
+
+    return $self->{with} unless defined $with;
+
+    $self->{with} = ref $with eq 'ARRAY' ? $with : [$with];
+
+    return $self;
+
+}
+
+
 sub group_by { @_ > 1 ? $_[0]->{group_by} = $_[1] : $_[0]->{group_by} }
 sub having   { @_ > 1 ? $_[0]->{having}   = $_[1] : $_[0]->{having} }
 sub order_by { @_ > 1 ? $_[0]->{order_by} = $_[1] : $_[0]->{order_by} }

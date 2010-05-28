@@ -126,8 +126,7 @@ sub count {
     my $pk    = join(',', @pk);
 
     my $sql = ObjectDB::SQL->build('select', class => ref($self));
-    $sql->columns(\"COUNT(DISTINCT $pk)");
-    $sql->to_string;
+    $sql->columns(\"COUNT(DISTINCT $pk)");###"
 
     if (my $sources = $args{source}) {
         $sql->source($_) foreach @$sources;
@@ -514,7 +513,8 @@ sub find {
     $sql->order_by($args{order_by});
     $sql->limit(1) if $single;
 
-    my $with = $sql->_resolve_with($args{with});
+    $sql->with($args{with});
+    $sql->_resolve_with;
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
     $sql->to_string;
@@ -535,8 +535,7 @@ sub find {
         return ObjectDB::Iterator->new(
             class   => ref($self),
             sth     => $sth,
-            columns => [$sql->columns],
-            with    => $with
+            sql     => $sql
         );
     }
     else {
@@ -545,8 +544,7 @@ sub find {
 
         my $objects = $self->_map_rows_to_objects(
             rows    => $rows,
-            columns => [$sql->columns],
-            with    => $with
+            sql     => $sql
         );
 
         return $single ? $objects->[0] : wantarray ? @$objects : $objects;
@@ -685,8 +683,8 @@ sub load {
 
     $sql->where([map { $_ => $self->column($_) } @columns]);
     $sql->order_by();
-    my $with = $sql->_resolve_with($args{with});
-
+    $sql->with($args{with});
+    $sql->_resolve_with;
     $sql->to_string;
 
     my $sth = $dbh->prepare("$sql");
@@ -706,8 +704,7 @@ sub load {
 
     my $object = $self->_map_rows_to_objects(
         rows    => $rows,
-        columns => [$sql->columns],
-        with    => $with
+        sql     => $sql
     )->[0];
 
     $self->init(%{$object->to_hash});
@@ -1035,8 +1032,9 @@ sub _map_rows_to_objects {
     my %params = @_;
 
     my $rows    = $params{rows};
-    my $with    = $params{with};
-    my $columns = $params{columns};
+    my $sql     = $params{sql};
+    my $with    = $sql->with if $sql;
+    my $columns = [$sql->columns] if $sql;
 
     my $map     = {};
     my $objects = [];
@@ -1098,7 +1096,6 @@ sub _map_rows_to_objects {
 
             my $sign = $rel_info->{name} . $rel_object->sign;
 
-# TO DO: Test
             if ($map->{$sign}) {
                 unshift(@recent_parents, $map->{$sign});
                 next;

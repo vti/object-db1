@@ -173,11 +173,13 @@ sub _resolve_columns {
 
 sub _resolve_with {
     my $self = shift;
-    my $with = shift;
+    my $with = $self->with;
 
     return unless $with;
 
-    $with = ref $with eq 'ARRAY' ? $with : [$with];
+    # Overwrite with (in case it is a scalar)
+    $self->with($with);
+
     my $class = $self->class;
 
     my @new_rel_info;
@@ -257,7 +259,7 @@ sub _resolve_with {
         unshift @$with, $new_rel_info;
     }
 
-    return $with;
+    return $self;
 
 }
 
