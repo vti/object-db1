@@ -510,21 +510,14 @@ sub find {
         }
     }
 
-    my $with;
-    if ($with = $args{with}) {
-        $with = [$with] unless ref $with eq 'ARRAY';
-        $sql->_resolve_with($with);
-    }
-
     $sql->where($args{where});
     $sql->order_by($args{order_by});
+    $sql->limit(1) if $single;
 
+    my $with = $sql->_resolve_with($args{with});
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
-    $sql->limit(1) if $single;
     $sql->to_string;
-
-    warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
     unless ($sth) {
@@ -692,15 +685,9 @@ sub load {
 
     $sql->where([map { $_ => $self->column($_) } @columns]);
     $sql->order_by();
-
-    my $with;
-    if ($with = $args{with}) {
-        $with = [$with] unless ref $with eq 'ARRAY';
-        $sql->_resolve_with($with);
-    }
+    my $with = $sql->_resolve_with($args{with});
 
     $sql->to_string;
-    warn "$sql" if $ENV{OBJECTDB_DEBUG};
 
     my $sth = $dbh->prepare("$sql");
     unless ($sth) {
