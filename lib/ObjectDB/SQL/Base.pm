@@ -177,9 +177,6 @@ sub _resolve_with {
 
     return unless $with;
 
-    # Overwrite with (in case it is a scalar)
-    $self->with($with);
-
     my $class = $self->class;
 
     my @new_rel_info;

@@ -24,8 +24,6 @@ sub next {
 
     my $objects = $self->{class}->_map_rows_to_objects(
         rows    => [[@row]],
-        columns => $self->{columns},
-        with    => $self->{with},
         sql     => $self->{sql},
     );
 
