@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use overload '""' => sub { shift->to_string }, fallback => 1;
+use overload 'bool' => sub { shift; }, fallback => 1;
 
 sub new {
     my $class = shift;

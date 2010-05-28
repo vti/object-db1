@@ -512,8 +512,8 @@ sub find {
     $sql->where($args{where});
     $sql->order_by($args{order_by});
     $sql->limit(1) if $single;
-
     $sql->with($args{with});
+
     $sql->_resolve_with;
     $sql->_resolve_columns;
     $sql->_resolve_order_by;
