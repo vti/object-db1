@@ -8,6 +8,7 @@ use ObjectDB::SQL;
 use ObjectDB::Schema;
 use ObjectDB::Iterator;
 require Carp;
+require Encode;
 
 use constant DEBUG => $ENV{OBJECTDB_DEBUG} || 0;
 
@@ -787,6 +788,10 @@ sub sign {
     my $self = shift;
 
     my @values = map { $_ => $self->column($_) || '' } $self->columns;
+
+    foreach (@values) {
+        $_ = Encode::encode_utf8($_) if Encode::is_utf8($_);
+    }
 
     my $class = ref($self);
     return md5_hex($class . ':' . join(',', @values));
