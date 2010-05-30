@@ -1040,8 +1040,8 @@ sub _load_relationship {
 }
 
 sub _map_rows_to_objects {
-    my $class = shift;
-    $class = ref($class) if ref $class;
+    my $self = shift;
+    my $class = ref($self);
     my %params = @_;
 
     my $rows    = $params{rows};
@@ -1059,6 +1059,7 @@ sub _map_rows_to_objects {
         }
 
         my $object = $class->new(@col);
+        $object->init_db($self->dbh);
         $object->is_in_db(1);
         $object->is_modified(0);
 
@@ -1104,6 +1105,7 @@ sub _map_rows_to_objects {
 
             my $rel_object = $relationship->class->new(@values);
 
+            $rel_object->init_db($self->dbh);
             $rel_object->is_in_db(1);
             $rel_object->is_modified(0);
 
