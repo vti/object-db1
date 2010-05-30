@@ -274,9 +274,10 @@ sub create_related {
           %{$relationship->map_class->schema->relationships->{$map_to}
               ->{map}};
 
-        $object = $relationship->class->new(%$args)->load;
+        $object = $relationship->class->new(%$args);
+        $object->init_db($self->dbh);
 
-        if ($object) {
+        if ($object->load) {
             my $rel = $relationship->map_class->new(
                 $from_foreign_pk => $self->column($from_pk),
                 $to_foreign_pk   => $object->column($to_pk)
@@ -285,7 +286,9 @@ sub create_related {
             return $rel->create;
         }
         else {
-            $object = $relationship->class->new(%$args)->create;
+            $object = $relationship->class->new(%$args);
+            $object->init_db($self->dbh);
+            $object->create;
 
             # Create map object
             my $rel = $relationship->map_class->new(
@@ -308,7 +311,6 @@ sub create_related {
         }
 
         my $object = $relationship->class->new(@params, %$args);
-
         $object->init_db($self->init_db);
         return $object->create;
     }
@@ -637,12 +639,15 @@ sub init {
                 if (ref $rel_values eq 'ARRAY') {
                     $self->_related->{$rel} ||= [];
                     foreach my $rel_value (@$rel_values) {
-                        push @{$self->_related->{$rel}},
-                          $rel_class->new(%$rel_value);
+                        my $object = $rel_class->new(%$rel_value);
+                        $object->init_db($self->init_db);
+                        push @{$self->_related->{$rel}}, $object;
                     }
                 }
                 else {
-                    $self->_related->{$rel} = $rel_class->new(%$rel_values);
+                    my $object = $rel_class->new(%$rel_values);
+                    $object->init_db($self->init_db);
+                    $self->_related->{$rel} = $object;
                 }
             }
         }
