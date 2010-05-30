@@ -18,7 +18,7 @@ my $dbh = Author->init_db;
 my $sth = $dbh->prepare("SELECT * FROM author");
 $sth->execute;
 
-my $i = ObjectDB::Iterator->new(class => 'Author', sth => $sth);
+my $i = ObjectDB::Iterator->new(object => Author->new, sth => $sth);
 ok($i);
 
 my $count = 0;

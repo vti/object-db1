@@ -519,7 +519,6 @@ sub find {
 
     $sql->where($args{where});
     $sql->order_by($args{order_by});
-    $sql->limit(1) if $single;
     $sql->with($args{with});
 
     $sql->_resolve_with;
@@ -540,9 +539,9 @@ sub find {
 
     if ($iterator) {
         return ObjectDB::Iterator->new(
-            class   => ref($self),
-            sth     => $sth,
-            sql     => $sql
+            object => $self,
+            sth    => $sth,
+            sql    => $sql
         );
     }
     else {

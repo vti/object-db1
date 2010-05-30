@@ -22,7 +22,7 @@ sub next {
     my @row = $self->sth->fetchrow_array;
     return unless @row;
 
-    my $objects = $self->{class}->_map_rows_to_objects(
+    my $objects = $self->{object}->_map_rows_to_objects(
         rows    => [[@row]],
         sql     => $self->{sql},
     );
