@@ -33,7 +33,7 @@ sub new {
 sub begin_work {
     my $self = shift;
 
-    return $self->init_db->begin_work;
+    return $self->dbh->begin_work;
 }
 
 sub clone {
@@ -111,7 +111,7 @@ sub columns {
 sub commit {
     my $self = shift;
 
-    return $self->init_db->commit;
+    return $self->dbh->commit;
 }
 
 sub count {
@@ -120,7 +120,7 @@ sub count {
 
     die '->count must be called on object instance' unless ref($self);
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my $table = $self->schema->table;
     my @pk    = map {"`$table`.`$_`"} $self->schema->primary_keys;
@@ -156,7 +156,7 @@ sub count_related {
 
     die 'at least the name of relationship is required' unless $name;
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my $relationship = $self->_load_relationship($name);
 
@@ -188,7 +188,7 @@ sub count_related {
     }
 
     my $rel = $relationship->class->new;
-    $rel->init_db($self->init_db);
+    $rel->init_db($self->dbh);
     return $rel->count(%$args);
 }
 
@@ -197,7 +197,7 @@ sub create {
 
     return $self if $self->is_in_db;
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my $sql = ObjectDB::SQL->build('insert');
     $sql->table($self->schema->table);
@@ -314,13 +314,21 @@ sub create_related {
     }
 }
 
+sub dbh {
+    my $self = shift;
+
+    return $self->init_db if $self->init_db;
+
+    die '->init_db returned nothing';
+}
+
 sub delete {
     my $self = shift;
     my %args = @_;
 
     die '->delete must be called on object instance' unless ref($self);
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my @columns = $self->columns;
 
@@ -476,7 +484,7 @@ sub find {
 
     die '->find must be called on object instance' unless ref($self);
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my $iterator = $args{iterator};
     my $single   = $args{single};
@@ -552,7 +560,7 @@ sub find_related {
     my $self = shift;
     my ($name, $args) = @_;
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my $relationship = $self->_load_relationship($name);
 
@@ -596,6 +604,7 @@ sub find_related {
     }
 
     my $rel = $relationship->class->new;
+    $rel->init_db($dbh);
     return $rel->find(%$args);
 }
 
@@ -665,7 +674,7 @@ sub load {
 
     my $class = ref $self ? ref $self : $self;
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my @columns;
     foreach my $name ($self->columns) {
@@ -737,7 +746,7 @@ sub related {
 sub rollback {
     my $self = shift;
 
-    return $self->init_db->rollback;
+    return $self->dbh->rollback;
 }
 
 sub schema {
@@ -830,7 +839,7 @@ sub update {
     my $self = shift;
     my %args = @_;
 
-    my $dbh = $self->init_db;
+    my $dbh = $self->dbh;
 
     my @columns;
     my @values;
