@@ -8,25 +8,12 @@ use base 'ObjectDB::SQL::Base';
 sub new {
     my $self = shift->SUPER::new(@_);
 
-    $self->{_sources} ||= [];
+    $self->{sources} ||= [];
     $self->{_columns} ||= [];
+    $self->{_source} = $self->{sources}->[0];
 
     return $self;
 }
-
-sub with {
-
-    my $self = shift;
-    my $with = shift;
-
-    return $self->{with} unless defined $with;
-
-    $self->{with} = ref $with eq 'ARRAY' ? $with : [$with];
-
-    return $self;
-
-}
-
 
 sub group_by { @_ > 1 ? $_[0]->{group_by} = $_[1] : $_[0]->{group_by} }
 sub having   { @_ > 1 ? $_[0]->{having}   = $_[1] : $_[0]->{having} }
@@ -39,136 +26,112 @@ sub where_logic {
     @_ > 1 ? $_[0]->{where_logic} = $_[1] : $_[0]->{where_logic};
 }
 
-sub _sources { @_ > 1 ? $_[0]->{_sources} = $_[1] : $_[0]->{_sources} }
+sub sources { @_ > 1 ? $_[0]->{sources} = $_[1] : $_[0]->{sources} }
 sub _columns { @_ > 1 ? $_[0]->{_columns} = $_[1] : $_[0]->{_columns} }
 
+sub with {
+    my $self = shift;
 
-# Add sources, make sure that main source is loaded if schema class is available
-sub source {
-    my $self   = shift;
-    my $source = shift;
-
-    my $success;
-
-    # Create main source if request comes from a schema class
-    # and no source has been defined so far
-    if ( $self->class && !@{$self->_sources} ){
-        my $main_source = $self->class->schema->table;
-        $success = $self->_save_source($main_source);
+    if (@_) {
+        $self->{with} ||= [];
+        push @{$self->{with}}, ref $_[0] eq 'ARRAY' ? @{$_[0]} : @_;
+        return $self;
     }
 
-    # Save source that has been passed (if any)
-    if ( defined $source && $source ne '' ){
-        $success = $self->_save_source($source);
-    }
-
-    # Return
-    return $success;
+    return $self->{with};
 }
 
+sub source {
+    my $self = shift;
+    my ($source) = @_;
 
-# Save and validate source data
-sub _save_source {
-    my $self   = shift;
-    my $source = shift;
-
-    # Make source a hash ref
     $source = {name => $source} unless ref $source eq 'HASH';
 
-    # Initialize key for columns
     $source->{columns} ||= [];
 
-    my $success;
-
-    # Alias: only add source when alias not in "_sources" as alias or name
     if (my $as = $source->{as}) {
-        if ( !scalar( grep { $_->{name} eq $as } @{$self->_sources}) &&
-             !scalar(
-                grep { $_->{as} && ($_->{as} eq $as) } @{$self->_sources}
-             ) 
-        ){
-            push @{$self->_sources}, $source;
-            $success = 1;
+
+        # Source already exists
+        for (my $i = 0; $i < @{$self->sources}; $i++) {
+            my $s = $self->sources->[$i];
+
+            if ($source->{as} eq $s->{name}
+                || ($s->{as} && $s->{as} eq $source->{as}))
+            {
+                $self->{_source} = $self->sources->[$i];
+                return $self;
+            }
         }
     }
-    # No alias: only add source when name not in "_sources"
-    elsif (!scalar(grep {$_->{name} eq $source->{name}} @{$self->_sources})){
-        push @{$self->_sources}, $source;
-        $success = 1;
+    else {
+
+        # Source already exists
+        for (my $i = 0; $i < @{$self->sources}; $i++) {
+            if ($source->{name} eq $self->sources->[$i]->{name}) {
+                $self->{_source} = $self->sources->[$i];
+                return $self;
+            }
+        }
     }
 
-    return $success;
+    # Create a new source
+    push @{$self->sources}, $source;
+    $self->{_source} = $self->sources->[-1];
 
+    return $self;
 }
-
 
 sub columns {
     my $self = shift;
 
-    ### Setter
-    if (@_ && defined $_[0] && $_[0] ne '') {
+    if (@_) {
+        die 'first define source' unless @{$self->sources};
 
-        # Create main source if request comes from a schema class
-        # and no source has been defined so far
-        if ( $self->class && !@{$self->_sources} ){
-            $self->source;
+        $self->{_source}->{columns} ||= [];
+
+        # Only add the new columns
+        my @columns;
+        my @new_columns = ref $_[0] eq 'ARRAY' ? @{$_[0]} : @_;
+        foreach my $col (@new_columns) {
+            push @columns, $col
+              unless grep { $col eq $_ } @{$self->{_source}->{columns}};
         }
-        elsif ( !@{$self->_sources} ){
-            die 'first define source';
-        }
 
-        # Save columns to last source
-        $self->_sources->[-1]->{columns} =
-          ref $_[0] eq 'ARRAY' ? $_[0] : [@_];
+        push @{$self->{_source}->{columns}}, @columns if @columns;
 
-        # Return
         return $self;
-
     }
 
-
-    # Getter: return columns of main (first) source if no params passed
     my @column_names = ();
 
-    return @column_names unless @{$self->_sources}; 
-
-    foreach my $col (@{$self->_sources->[0]->{columns}}) {
-        if (ref $col eq 'SCALAR') {
-            $col = $$col;
+    foreach my $column (@{$self->sources->[0]->{columns}}) {
+        my $col;
+        if (ref $column eq 'SCALAR') {
+            $col = $$column;
         }
-        elsif (ref $col eq 'HASH') {
-            ($col) = $col->{as};
+        elsif (ref $column eq 'HASH') {
+            $col = $column->{as};
+        }
+        else {
+            $col = $column;
         }
 
         push @column_names, $col;
     }
 
     return @column_names;
-
 }
-
 
 sub to_string {
     my $self = shift;
 
     my $query = "";
 
-    # Create main source if request comes from a schema class
-    # and no source has been defined so far
-    if ( $self->class && !@{$self->_sources} ){
-        $self->source;
-    }
-
-    # Add columns for main source if not already added so far
-    if ( $self->class && !@{$self->_sources->[0]->{columns}} ){
-        $self->_sources->[0]->{columns} = [$self->class->schema->columns];
-    }
-
     $query .= 'SELECT ';
 
-    my $need_prefix = @{$self->_sources} > 1;
+    my $need_prefix = @{$self->sources} > 1;
     my $first       = 1;
-    foreach my $source (@{$self->_sources}) {
+    foreach my $source (@{$self->sources}) {
         if (@{$source->{columns}}) {
             $query .= ', ' unless $first;
 
@@ -215,11 +178,11 @@ sub to_string {
 
     $query .= ' FROM ';
 
-    $query .= $self->_sources_to_string;
+    $query .= $self->sources_to_string;
 
     my $default_prefix;
     if ($need_prefix) {
-        $default_prefix = $self->_sources->[0]->{name};
+        $default_prefix = $self->sources->[0]->{name};
     }
 
     if (my $where = $self->where) {
@@ -285,13 +248,13 @@ sub to_string {
     return $query;
 }
 
-sub _sources_to_string {
+sub sources_to_string {
     my $self = shift;
 
     my $string = "";
 
     my $first = 1;
-    foreach my $source (@{$self->_sources}) {
+    foreach my $source (@{$self->sources}) {
         $string .= ', ' unless $first || $source->{join};
 
         $string .= ' ' . uc $source->{join} . ' JOIN ' if $source->{join};
@@ -341,37 +304,6 @@ sub _sources_to_string {
 
     return $string;
 }
-
-
-sub _resolve_order_by {
-    my $self = shift;
-
-    my $class = $self->class;
-
-    my $order_by = $self->order_by;
-    return unless $order_by;
-
-    my @parts = split /\s*,\s*/ => $order_by;
-
-    foreach my $part (@parts) {
-        my $relationships = $class->schema->relationships;
-        while ($part =~ s/^(\w+)\.//) {
-            my $prefix = $1;
-
-            if (my $relationship = $relationships->{$prefix}) {
-                my $rel_table = $relationship->related_table;
-                $part = "$rel_table.$part";
-
-                $relationships = $relationship->class->schema->relationships;
-            }
-        }
-    }
-
-    $self->order_by(join(', ', @parts));
-
-    return $self;
-}
-
 
 1;
 __END__

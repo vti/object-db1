@@ -4,6 +4,9 @@ use strict;
 use warnings;
 
 use Digest::MD5 'md5_hex';
+use ObjectDB::Chain::Count;
+use ObjectDB::Chain::Delete;
+use ObjectDB::Chain::Find;
 use ObjectDB::SQL;
 use ObjectDB::Schema;
 use ObjectDB::Iterator;
@@ -35,6 +38,8 @@ sub begin_work {
 
     return $self->dbh->begin_work;
 }
+
+sub chained { @_ > 1 ? do {$_[0]->{chained} = $_[1]; return $_[0]} : $_[0]->{chained} }
 
 sub clone {
     my $self = shift;
@@ -120,34 +125,11 @@ sub count {
 
     die '->count must be called on object instance' unless ref($self);
 
-    my $dbh = $self->dbh;
+    my $chain = $self->_new_chain('count');
+    return $chain if $self->chained;
 
-    my $table = $self->schema->table;
-    my @pk    = map {"`$table`.`$_`"} $self->schema->primary_keys;
-    my $pk    = join(',', @pk);
-
-    my $sql = ObjectDB::SQL->build('select', class => ref($self));
-    $sql->columns(\"COUNT(DISTINCT $pk)");###"
-
-    if (my $sources = $args{source}) {
-        $sql->source($_) foreach @$sources;
-    }
-
-    $sql->where($args{where});
-    $sql->with($args{with});
-
-    $sql->_resolve_columns;
-
-    warn "$sql" if $ENV{OBJECTDB_DEBUG};
-
-    my $hash_ref = $dbh->selectrow_hashref("$sql", {}, @{$sql->bind});
-    unless ($hash_ref && ref $hash_ref eq 'HASH') {
-        $self->error($dbh->errstr);
-        return;
-    }
-
-    my @values = values %$hash_ref;
-    return shift @values;
+    $chain->where($args{where}) if $args{where};
+    return $chain->process;
 }
 
 sub count_related {
@@ -156,11 +138,12 @@ sub count_related {
 
     die 'at least the name of relationship is required' unless $name;
 
-    my $dbh = $self->dbh;
-
     my $relationship = $self->_load_relationship($name);
 
-    $args->{where} ||= [];
+    $args ||= {};
+    #$args->{where} ||= [];
+
+    my $chain = $self->_new_chain('count', parent => $relationship->class->new);
 
     if ($relationship->{type} eq 'many to many') {
         my $map_from = $relationship->{map_from};
@@ -170,31 +153,32 @@ sub count_related {
           %{$relationship->map_class->schema->relationships->{$map_from}
               ->{map}};
 
-        push @{$args->{where}},
-          (     $relationship->map_class->schema->table . '.'
+        $chain->where($relationship->map_class->schema->table . '.'
               . $to => $self->column($from));
 
-        $args->{source} =
-          [$relationship->to_self_map_source, $relationship->to_self_source];
+        # Add sources manually, because they are not specified via the schema
+        $chain->sql->source($relationship->to_self_map_source);
+        $chain->sql->source($relationship->to_self_source);
     }
     else {
         my ($from, $to) = %{$relationship->map};
 
-        push @{$args->{where}}, ($to => $self->column($from)),;
+        $chain->where($to => $self->column($from));
     }
 
-    if ($relationship->where) {
-        push @{$args->{where}}, @{$relationship->where};
-    }
+    #$chain->where($relationship->where) if $relationship->where;
 
-    my $rel = $relationship->class->new;
-    $rel->init_db($self->dbh);
-    return $rel->count(%$args);
+    return $chain if $self->chained;
+
+    #$chain->where($args->{where}) if $args->{where};
+
+    return $chain->process;
 }
 
 sub create {
     my $self = shift;
 
+    # Prevent creating again
     return $self if $self->is_in_db;
 
     my $dbh = $self->dbh;
@@ -332,57 +316,31 @@ sub delete {
 
     my $dbh = $self->dbh;
 
-    my @columns = $self->columns;
+    # Delete object itself
+    if (my @columns = $self->columns) {
+        my $chain = $self->_new_chain('delete');
 
-    if (!%args && @columns) {
+        my @columns = $self->columns;
         my @keys = grep { $self->schema->is_primary_key($_) } @columns;
         unless (@keys) {
             @keys = grep { $self->schema->is_unique_key($_) } @columns;
         }
 
-        Carp::croak "->delete: no primary or unique keys specified" unless @keys;
+        Carp::croak "->delete: no primary or unique keys specified"
+          unless @keys;
 
-        $args{where} = [map { $_ => $self->column($_) } @keys];
-
-        my $sql = ObjectDB::SQL->build('delete');
-        $sql->class(ref($self));
-        $sql->table($self->schema->table);
-        $sql->where([@{$args{where}}]) if $args{where};
-
-        warn "$sql" if $ENV{OBJECTDB_DEBUG};
+        $chain->where(map { $_ => $self->column($_) } @keys);
 
         $self->_delete_related;
 
-        my $sth = $dbh->prepare("$sql");
-        unless ($sth) {
-            $self->error($DBI::errstr);
-            return;
-        }
-
-        my $rv = $sth->execute(@{$sql->bind});
-        unless ($rv && $rv eq '1') {
-            $self->error($DBI::errstr);
-            return;
-        }
-
-        return 1;
+        return $chain->process;
     }
-    else {
-        my %where = @{$args{where} || []};
 
-        my $objects = $self->find(where => [%where]);
-        return unless $objects && @$objects;
+    my $chain = $self->_new_chain('find_and_delete');
+    return $chain if $self->chained;
 
-        my $count = 0;
-        foreach my $object (@$objects) {
-            $object->init_db($self->init_db);
-            return unless $object->delete;
-
-            $count++;
-        }
-
-        return $count;
-    }
+    $chain->where($args{where}) if $args{where};
+    return $chain->process;
 }
 
 sub delete_related {
@@ -391,91 +349,11 @@ sub delete_related {
 
     die '->delete_related must be called on object instance' unless ref($self);
 
-    my $relationship = $self->_load_relationship($name);
+    my $chain = $self->_new_chain('delete_related', name => $name);
+    return $chain if $self->chained;
 
-    $args ||= {};
-    $args->{where} ||= [];
-
-    my $class_param = 'class';
-    if ($relationship->{type} eq 'many to many') {
-        my $map_from = $relationship->{map_from};
-        my $map_to   = $relationship->{map_to};
-
-        my ($to, $from) =
-          %{$relationship->map_class->schema->relationships->{$map_from}
-              ->{map}};
-
-        for (my $i = 0; $i < @{$args->{where}}; $i += 2) {
-            $args->{where}->[$i] = "$map_to." . $args->{where}->[$i];
-        }
-
-        push @{$args->{where}}, ($to => $self->column($from));
-
-        $class_param = 'map_class';
-    }
-    else {
-        my ($from, $to) = %{$relationship->{map}};
-
-        push @{$args->{where}}, ($to => $self->column($from));
-    }
-
-    if ($relationship->where) {
-        push @{$args->{where}}, @{$relationship->where};
-    }
-
-    my $rel = $relationship->$class_param->new;
-    $rel->init_db($self->init_db);
-
-    my $ok = $rel->delete(%$args);
-    return $ok unless $ok;
-
-    # Do nothing if no preloaded objects found
-    my $related = $self->_related->{$name};
-    return $ok unless $related;
-
-    # Remove deleted objects from parent object
-    my $objects = [];
-    $related = [$related] unless ref($related) eq 'ARRAY';
-
-    my %where = @{$args->{where}};
-    if ($relationship->type eq 'many to many') {
-        my ($to, $from) =
-          %{$relationship->map_class->schema->relationships->{$relationship->{map_from}}
-              ->{map}};
-        delete $where{$to};
-
-        # Remove everything if we don't have any specific columns
-        unless (%where) {
-            delete $self->_related->{$name};
-            return $ok;
-        }
-
-        # Cut off prefixes
-        foreach my $key (keys %where) {
-            my $v = delete $where{$key};
-            $key =~ s/^.*?\.//;
-            $where{$key} = $v;
-        }
-    }
-
-    OBJECT: foreach my $rel (@$related) {
-        foreach my $arg (keys %where) {
-            my $value = $rel->column($arg);
-
-            next OBJECT if defined $value && $value eq $where{$arg};
-        }
-
-        push @$objects, $rel;
-    }
-
-    if (@$objects) {
-        $self->_related->{$name} = $objects;
-    }
-    else {
-        delete $self->_related->{$name};
-    }
-
-    return $ok;
+    $chain->where($args->{where}) if $args->{where};
+    return $chain->process;
 }
 
 sub error { @_ > 1 ? $_[0]->{error} = $_[1] : $_[0]->{error} }
@@ -486,86 +364,30 @@ sub find {
 
     die '->find must be called on object instance' unless ref($self);
 
-    my $dbh = $self->dbh;
+    my $chain = $self->_new_chain('find');
+    return $chain if $self->chained;
 
-    my $iterator = $args{iterator};
-    my $single   = $args{single};
-    $iterator = undef if $single;
-
-    my $sql = ObjectDB::SQL->build('select', class => ref($self));
-
-    if (my $cols = $args{columns}) {
-        my @columns = ref $cols ? @$cols : ($cols);
-        unshift @columns, $self->schema->primary_keys;
-        $sql->columns(@columns);
-    }
-
-    my $page = $args{page};
-    my $page_size = $args{page_size} || 10;
-
-    unless ($single) {
-        if (defined $page) {
-            $page = 1 unless $page && $page =~ m/^[0-9]+$/o;
-            $sql->offset(($page - 1) * $page_size);
-            $sql->limit($page_size);
+    foreach my $method (
+        qw/where with columns page page_size single iterator order_by limit/)
+    {
+        if (defined(my $value = $args{$method})) {
+            $chain->$method($value);
         }
     }
 
-    if (my $sources = $args{source}) {
-        foreach my $source (@$sources) {
-            $sql->source($source);
-        }
-    }
-
-    $sql->where($args{where});
-    $sql->order_by($args{order_by});
-    $sql->with($args{with});
-
-    $sql->_resolve_with;
-    $sql->_resolve_columns;
-    $sql->_resolve_order_by;
-
-    my $sth = $dbh->prepare("$sql");
-    unless ($sth) {
-        $self->error($DBI::errstr);
-        return;
-    }
-
-    my $rv = $sth->execute(@{$sql->bind});
-    unless ($rv) {
-        $self->error($DBI::errstr);
-        return;
-    }
-
-    if ($iterator) {
-        return ObjectDB::Iterator->new(
-            object => $self,
-            sth    => $sth,
-            sql    => $sql
-        );
-    }
-    else {
-        my $rows = $sth->fetchall_arrayref;
-        return $single ? undef : [] unless $rows && @$rows;
-
-        my $objects = $self->_map_rows_to_objects(
-            rows    => $rows,
-            sql     => $sql
-        );
-
-        return $single ? $objects->[0] : wantarray ? @$objects : $objects;
-    }
+    return $chain->process;
 }
 
 sub find_related {
     my $self = shift;
     my ($name, $args) = @_;
 
-    my $dbh = $self->dbh;
-
     my $relationship = $self->_load_relationship($name);
 
-    $args->{where} ||= [];
+    $args ||= {};
+    #$args->{where} ||= [];
+
+    my $chain = $self->_new_chain('find', parent => $relationship->class->new);
 
     if ($relationship->{type} eq 'many to many') {
         my $map_from = $relationship->{map_from};
@@ -575,12 +397,18 @@ sub find_related {
           %{$relationship->map_class->schema->relationships->{$map_from}
               ->{map}};
 
-        push @{$args->{where}},
-          (     $relationship->map_class->schema->table . '.'
+        $chain->where($relationship->map_class->schema->table . '.'
               . $to => $self->column($from));
 
-        $args->{source} =
-          [$relationship->to_self_map_source, $relationship->to_self_source];
+        #push @{$args->{where}},
+          #(     $relationship->map_class->schema->table . '.'
+              #. $to => $self->column($from));
+
+        #$args->{source} =
+          #[$relationship->to_self_map_source, $relationship->to_self_source];
+
+        $chain->sql->source($relationship->to_self_map_source);
+        $chain->sql->source($relationship->to_self_source);
     }
     else {
         my ($from, $to) = %{$relationship->{map}};
@@ -593,20 +421,31 @@ sub find_related {
             return unless defined $self->column($from);
         }
 
-        push @{$args->{where}}, ($to => $self->column($from));
+        $chain->where($to => $self->column($from));
+        #push @{$args->{where}}, ($to => $self->column($from));
     }
 
     if ($relationship->where) {
-        push @{$args->{where}}, @{$relationship->where};
+        $chain->where($relationship->where);
+        #push @{$args->{where}}, @{$relationship->where};
     }
 
     if ($relationship->with) {
-        $args->{with} = $relationship->with;
+        #$args->{with} = $relationship->with;
+        $chain->with($relationship->with);
     }
 
-    my $rel = $relationship->class->new;
-    $rel->init_db($dbh);
-    return $rel->find(%$args);
+    return $chain if $self->chained;
+
+    $chain->single(1) if $args->{single};
+    $chain->where($args->{where}) if $args->{where};
+    $chain->with($args->{with}) if $args->{with};
+
+    return $chain->process;
+
+    #my $rel = $relationship->class->new;
+    #$rel->init_db($dbh);
+    #return $rel->find(%$args);
 }
 
 sub init {
@@ -676,52 +515,15 @@ sub load {
     my $self = shift;
     my %args = @_;
 
-    my $class = ref $self ? ref $self : $self;
-
     my $dbh = $self->dbh;
 
-    my @columns;
-    foreach my $name ($self->columns) {
-        push @columns, $name
-          if $self->schema->is_primary_key($name)
-              || $self->schema->is_unique_key($name);
-    }
+    my $chain = $self->_new_chain('load');
 
-    Carp::croak "->load: no primary or unique keys specified" unless @columns;
+    return $chain if $self->chained;
 
-    my $sql = ObjectDB::SQL->build('select', class => $class);
+    $chain->with($args{with}) if $args{with};
 
-    $sql->where([map { $_ => $self->column($_) } @columns]);
-    $sql->order_by();
-    $sql->with($args{with});
-    $sql->_resolve_with;
-
-    my $sth = $dbh->prepare("$sql");
-    unless ($sth) {
-        $self->error($DBI::errstr);
-        return;
-    }
-
-    my $rv = $sth->execute(@{$sql->bind});
-    unless ($rv) {
-        $self->error($DBI::errstr);
-        return;
-    }
-
-    my $rows = $sth->fetchall_arrayref;
-    return unless $rows && @$rows;
-
-    my $object = $self->_map_rows_to_objects(
-        rows    => $rows,
-        sql     => $sql
-    )->[0];
-
-    $self->init(%{$object->to_hash});
-
-    $self->is_in_db(1);
-    $self->is_modified(0);
-
-    return $self;
+    return $chain->process;
 }
 
 sub load_related {
@@ -1136,6 +938,26 @@ sub _map_rows_to_objects {
     return $objects;
 }
 
+sub _new_chain {
+    my $self = shift;
+    my $name = shift;
+
+    # Decamelize
+    $name = join '' => map {ucfirst} split '_' => $name;
+
+    my $class = "ObjectDB::Chain::$name";
+
+    # Already loaded
+    unless ($class->can('new')) {
+        eval "require $class";
+        die $@ if $@;
+    }
+
+    my $chain = $class->new(parent => $self, @_);
+    $chain->init_db($self->dbh);
+    return $chain;
+}
+
 sub _related { @_ > 1 ? $_[0]->{_related} = $_[1] : $_[0]->{_related} }
 
 sub _update_related {
@@ -1219,15 +1041,15 @@ Object cloning. Everything is copied except primary key and unique key values.
 
 =head2 C<begin_work>
 
-Begin transaction.
+Begin transchain.
 
 =head2 C<rollback>
 
-Roll back transaction.
+Roll back transchain.
 
 =head2 C<commit>
 
-Commit transaction.
+Commit transchain.
 
 =head2 C<create>
 

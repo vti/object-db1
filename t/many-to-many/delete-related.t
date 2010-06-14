@@ -8,7 +8,7 @@ use Test::More;
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite is required for running this test" if $@;
 
-plan tests => 6;
+plan tests => 5;
 
 use lib 't/lib';
 
@@ -40,8 +40,4 @@ ok($article);
 
 $article->delete;
 
-my $tag = Tag->new(name => 'foo')->load;
-
-ok($tag);
-
-$tag->delete;
+Tag->new->delete;

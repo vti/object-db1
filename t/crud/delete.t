@@ -37,5 +37,5 @@ $author = Author->new(name => 'root');
 $author->create;
 ok(Author->new->delete(where => [name => 'root']));
 
-ok(not defined Author->new->delete(where => [id => 123456]));
-ok(not defined Author->new->delete(where => [name => 'abc']));
+is(Author->new->delete(where => [id => 123456]), 0);
+is(Author->new->delete(where => [name => 'abc']), 0);

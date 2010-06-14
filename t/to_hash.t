@@ -35,7 +35,7 @@ is_deeply(
 $author->create;
 
 $author =
-  Author->new(name => 'bar')->load(with => ['articles', 'articles.tags']);
+  Author->new(name => 'bar')->load(with => [qw/articles articles.tags/]);
 
 my $hash = $author->to_hash;
 is($hash->{name}, 'bar');
@@ -44,3 +44,5 @@ is(@{$hash->{articles}->[0]->{tags}}, 1);
 is(@{$hash->{articles}->[1]->{tags}}, 2);
 
 $author->delete;
+
+Tag->new->delete;

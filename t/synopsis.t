@@ -35,3 +35,4 @@ my $articles = Article->new->find(where => ['tags.name' => 'unix']);
 is(@$articles, 1);
 
 ok($author->delete);
+Tag->new->delete;
