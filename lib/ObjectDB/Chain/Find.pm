@@ -56,7 +56,7 @@ sub where {
 
     if (@_) {
         my $where = $self->_resolve_columns(@_);
-        $self->sql->where($where);
+        $self->sql->where($where) if $where;
     }
 
     return $self;

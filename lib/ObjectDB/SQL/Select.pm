@@ -11,6 +11,7 @@ sub new {
     $self->{sources} ||= [];
     $self->{_columns} ||= [];
     $self->{_source} = $self->{sources}->[0];
+    $self->{where} = [];
 
     return $self;
 }
@@ -20,7 +21,26 @@ sub having   { @_ > 1 ? $_[0]->{having}   = $_[1] : $_[0]->{having} }
 sub order_by { @_ > 1 ? $_[0]->{order_by} = $_[1] : $_[0]->{order_by} }
 sub limit    { @_ > 1 ? $_[0]->{limit}    = $_[1] : $_[0]->{limit} }
 sub offset   { @_ > 1 ? $_[0]->{offset}   = $_[1] : $_[0]->{offset} }
-sub where    { @_ > 1 ? $_[0]->{where}    = $_[1] : $_[0]->{where} }
+
+sub where {
+    my $self = shift;
+
+    if (@_) {
+        my @params;
+
+        if (@_ == 1) {
+            push @{$self->{where}}, ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0]
+              if defined $_[0];
+        }
+        else {
+            push @{$self->{where}}, @_;
+        }
+
+        return $self;
+    }
+
+    return $self->{where};
+}
 
 sub where_logic {
     @_ > 1 ? $_[0]->{where_logic} = $_[1] : $_[0]->{where_logic};

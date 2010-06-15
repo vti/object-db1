@@ -8,7 +8,7 @@ use base 'TestDB';
 __PACKAGE__->schema(
     table => 'nested_comment',
     columns =>
-      [qw/id addtime master_id master_type parent_id level rgt lft content/,],
+      [qw/id addtime master_id master_type parent_id level rgt lft content/],
     primary_keys   => 'id',
     auto_increment => 'id',
     relationships  => {
@@ -41,7 +41,6 @@ __PACKAGE__->schema(
 
 sub create {
     my $self = shift;
-    my ($dbh, $cb) = @_;
 
     my $rgt           = 1;
     my $level         = 0;
@@ -77,7 +76,6 @@ sub create {
             order_by => 'addtime DESC, id DESC',
             single   => 1
         );
-
 
         $rgt = $left->column('rgt') if $left;
 

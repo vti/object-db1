@@ -8,7 +8,7 @@ use Test::More;
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite is required for running this test" if $@;
 
-plan tests => 9;
+plan tests => 12;
 
 use lib 't/lib';
 
@@ -46,5 +46,10 @@ is($authors->[0]->column('name'), 'root');
 $authors = Author->new->find(where => [password => 'boo']);
 is(@$authors,                    1);
 is($authors->[0]->column('name'), 'root');
+
+$authors = Author->new->find(order_by => 'name ASC');
+is(@$authors,                    2);
+is($authors->[0]->column('name'), 'boot');
+is($authors->[1]->column('name'), 'root');
 
 $_->delete for @authors;

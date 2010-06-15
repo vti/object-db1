@@ -12,7 +12,10 @@ $sql = ObjectDB::SQL->build('select');
 $sql->source('foo');
 $sql->columns({name => 'foo', as => 'bar'});
 $sql->where([id => 2]);
-is("$sql", "SELECT `foo` AS bar FROM `foo` WHERE (`id` = ?)");
+$sql->where(undef);
+$sql->where([]);
+$sql->where([foo => 'bar']);
+is("$sql", "SELECT `foo` AS bar FROM `foo` WHERE (`id` = ? AND `foo` = ?)");
 
 $sql = ObjectDB::SQL->build('select');
 $sql->source('foo');
@@ -74,7 +77,7 @@ is("$sql",
 $sql = ObjectDB::SQL->build('select');
 $sql->source('foo');
 $sql->columns('foo');
-$sql->where("1 > 2");
+$sql->where(\"1 > 2");
 is("$sql", 'SELECT `foo` FROM `foo` WHERE (1 > 2)');
 
 #$sql->command('select')->source('foo')->where({id => {like => '123%'}});
